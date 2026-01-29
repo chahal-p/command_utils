@@ -10,7 +10,8 @@ then
 fi
 
 function cu.pathadd() {
-  [[ ":$PATH:" == *":$1:"* ]] || export PATH="$1:$PATH"
+  local p="$(realpath "$1")"
+  [[ ":$PATH:" == *":$p:"* ]] || export PATH="$p:$PATH"
 }
 
 cu.pathadd "${HOME}/.local/bin"
