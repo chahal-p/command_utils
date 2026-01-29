@@ -6,11 +6,12 @@
   1. Navigate to extracted directory
      ```sh
      cd command_utils
-     chmod +x install.sh
+     chmod 755 install.sh
      ```
   1. ```sh
      # Use sudo if required.
-     ./install.sh --installation_path <installation_path>
+     # Default installation path is /usr/local/bin
+     bash ./install.sh --installation_path <installation_path>
      ```
   1. For bash, add below to .bashrc
      ```
