@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-[ -d /tmp/cu.eval.with_lock ] || mkdir -p /tmp/cu.eval.with_lock
+[ -d "/tmp/cu.eval.with_lock_${USER}" ] || mkdir -p "/tmp/cu.eval.with_lock_${USER}"
 
 source pbash-args.sh || { echo "pbash-args.sh is not installed"; exit 1; }
 
@@ -16,7 +16,7 @@ pbash.args.extract -l timeout: -o timeout -- "${internal_args[@]}" || timeout="$
 
 cu.is_macos && args+=( -t "$timeout" ) || args+=( --timeout "$timeout" )
 
-args+=( "/tmp/cu.eval.with_lock/$lock_id" )
+args+=( "/tmp/cu.eval.with_lock_${USER}/$lock_id" )
 
 cmd='flock'
 cu.is_macos && cmd=lockf

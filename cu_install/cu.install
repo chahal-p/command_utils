@@ -45,16 +45,16 @@ installation_path="$(realpath "$installation_path")"
 
 [ -d "$installation_path" ] || mkdir -p "$installation_path"
 
-mkdir -p /tmp/cu.install_bins
+mkdir -p "/tmp/cu.install_bins_${USER}"
 
 rp=""
 if [ "$content" == "-" ]
 then
-  rp="/tmp/cu.install_bins/$name"
+  rp="/tmp/cu.install_bins_${USER}/$name"
   cat - > "$rp"
 elif [ ! "$content" == "" ]
 then
-  rp="/tmp/cu.install_bins/$name"
+  rp="/tmp/cu.install_bins_${USER}/$name"
   cat <<< "$content" > "$rp"
 else
   rp="$(realpath "$file")"

@@ -22,8 +22,8 @@ CU_ERROR=1
 CU_ERROR_USAGE=2
 CU_ERROR_NOT_FOUND=40
 
-ROOT_DIR="${HOME}/.local/share/pcommand_utils_persistent_kv_data"
-LOCK_DIR='/tmp/cu_persistent_kv_locks'
+ROOT_DIR="${HOME}/.local/share/command_utils_persistent_kv_data"
+LOCK_DIR="/tmp/cu_persistent_kv_locks_${USER}"
 
 [[ -d "${ROOT_DIR}" ]] || mkdir -p "${ROOT_DIR}" || exit
 [[ -d "${LOCK_DIR}" ]] || mkdir -p "${LOCK_DIR}" || exit

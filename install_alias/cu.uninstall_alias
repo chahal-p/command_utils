@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-cu.uninstall --name "$1"
+cu.uninstall --name "$1" --installation_path "$HOME/.local/bin"

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 function _complete_cu.install() {
   local cur="${COMP_WORDS[COMP_CWORD]}"
-  COMPREPLY=( $(compgen -W "--name --content --file --quiet" -- "$cur") )
+  COMPREPLY=( $(compgen -W "--name --content --file --installation_path --quiet" -- "$cur") )
 }
 complete -F _complete_cu.install cu.install
 
 function _complete_cu.uninstall() {
   local cur="${COMP_WORDS[COMP_CWORD]}"
-  COMPREPLY=( $(compgen -W "--name" -- "$cur") )
+  COMPREPLY=( $(compgen -W "--name --installation_path" -- "$cur") )
 }
 complete -F _complete_cu.uninstall cu.uninstall

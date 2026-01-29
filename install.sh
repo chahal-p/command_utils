@@ -84,8 +84,7 @@ install=(
 "vars"
 )
 
-[ -f /tmp/_cu.completes.bash ] && rm -f /tmp/_cu.completes.bash
-echo '#!/usr/bin/env bash' > /tmp/_cu.completes.bash
+echo '#!/usr/bin/env bash' > "/tmp/_cu.completes.bash_${USER}"
 
 for x in "${install[@]}"
 do
@@ -99,8 +98,8 @@ do
   done
   if [ -f "./$x/_complete.sh" ]
   then
-    cat ./$x/_complete.sh | grep -v ^#.*$ >> /tmp/_cu.completes.bash
+    cat ./$x/_complete.sh | grep -v ^#.*$ >> "/tmp/_cu.completes.bash_${USER}"
   fi
 done
-bash cu_install/cu.install --installation_path "$FLAGS_installation_path" --file /tmp/_cu.completes.bash || exit
+bash cu_install/cu.install --installation_path "$FLAGS_installation_path" --name "_cu.completes.bash" --file "/tmp/_cu.completes.bash_${USER}" || exit
 exit 0
