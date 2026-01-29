@@ -9,13 +9,14 @@
      chmod +x install.sh
      ```
   1. ```sh
-     ./install.sh
+     # Use sudo if required.
+     ./install.sh --installation_path <installation_path>
      ```
   1. For bash, add below to .bashrc
      ```
-     source "$HOME/.local/bin/cu_init.bash"
+     source "<installation_path>/cu_init.bash"
      ```
      For zsh, add below to .zshrc
      ```
-     source "$HOME/.local/bin/cu_init.zsh"
+     source "<installation_path>/cu_init.zsh"
      ```
