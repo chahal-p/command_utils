@@ -15,5 +15,5 @@ for var in "${vars[@]}"; do
   # [ -z "$value" ] ||  { (echo "${value}" | base64 -d | file -i - | grep -q "charset=binary") && value="<binary data>"; }
   # [ "$value" == "<binary data>" ] || value="$(echo "${value}" | base64 -d)"
   [[ "${#value}" -gt $MAX_LEN ]] && value="${value:0:$MAX_LEN}...<truncated>..."
-  printf "%-${l}s : %-0s\n" "${var}" "$(cu.string.quoted "${value}")"
+  printf "%-${l}s : %-0s\n" "${var}" "$(cu.strings.quoted "${value}")"
 done
