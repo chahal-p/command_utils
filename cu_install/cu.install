@@ -65,4 +65,4 @@ wp="${installation_path}/${name}"
 [ -f "$rp" ] || { echo "Installation failed, $rp file do not exist"; exit 1; }
 
 [ "$quiet" == "true" ] || echo "Installing: $name"
-cp "$rp" "$wp" && chmod +x "$wp" || { echo "Installation failed"; exit 1; }
+cp "$rp" "$wp" && chmod 755 "$wp" || { echo "Installation failed"; exit 1; }
