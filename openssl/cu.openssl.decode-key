@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+source pbash-args.sh || { echo "pbash-args.sh is not installed"; exit 1; }
+
+file=()
+pbash.args.extract -s 'f:' -l 'file:' -o file -- "$@" || { read -p "-f|--file (file path): "; file=$REPLY; }
+
+inform=()
+pbash.args.extract -l 'inform:' -o inform -- "$@" || { read -p "--inform (der/pem): "; inform=$REPLY; }
+
+key_type=()
+pbash.args.extract -l 'type:' -o key_type -- "$@" || { read -p "--type (rsa/ec): "; key_type=$REPLY; }
+
+echo "Is this public key: "
+cu.confirm
+is_pub=$?
+
+if [ "$is_pub" == "0" ]
+then
+  cu.eval -v -- openssl "$key_type" -pubin -inform "$inform" -in "$file" -text -noout
+else [ "$is_pub" == "1" ]
+  cu.eval -v -- openssl "$key_type" -inform "$inform" -in "$file" -text -noout
+fi

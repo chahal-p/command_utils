@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+readarray -t vars < <(_cu.persistent_kv list _cu_vars)
+
+for var in "${vars[@]}"; do
+  value="$(_cu.persistent_kv get _cu_vars "${var}")"
+  # [ -z "$value" ] || { (echo "${value}" | base64 -d | head -c 10 | file -i - | grep -q "charset=binary") && continue; }
+  printf "export %s=%s;\n" "${var}" "$(cu.string.quoted "${value}")"
+done

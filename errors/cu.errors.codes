@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+CU_SUCCESS=0
+CU_ERROR=1
+CU_ERROR_USAGE=2
+CU_ERROR_NOT_FOUND=40

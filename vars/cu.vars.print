@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+readarray -t vars < <(_cu.persistent_kv list _cu_vars)
+
+l=0
+for var in "${vars[@]}"; do
+  l=$(cu.numbers.max "${l}" "$(cu.strings.length "${var}")")
+done
+
+MAX_LEN=80
+READ_LEN=$(( MAX_LEN + 1 ))
+
+for var in "${vars[@]}"; do
+  value="$(_cu.persistent_kv get _cu_vars "${var}" | head -c $READ_LEN)"
+  # [ -z "$value" ] ||  { (echo "${value}" | base64 -d | file -i - | grep -q "charset=binary") && value="<binary data>"; }
+  # [ "$value" == "<binary data>" ] || value="$(echo "${value}" | base64 -d)"
+  [[ "${#value}" -gt $MAX_LEN ]] && value="${value:0:$MAX_LEN}...<truncated>..."
+  printf "%-${l}s : %-0s\n" "${var}" "$(cu.string.quoted "${value}")"
+done

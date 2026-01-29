@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+source pbash-args.sh || { echo "pbash-args.sh is not installed"; exit 1; }
+
+pbash.args.is_switch_arg_enabled -l 'out-nanoseconds' -- "$@" ||
+pbash.args.is_switch_arg_enabled -l 'out-microseconds' -- "$@" ||
+pbash.args.is_switch_arg_enabled -l 'out-milliseconds' -- "$@" ||
+pbash.args.is_switch_arg_enabled -l 'out-seconds' -- "$@" ||
+{ cu.errors.echo "At least one of args --out-nanoseconds, --out-microseconds, --out-milliseconds or --out-seconds is required"; exit 1; }
+
+input="$(cu.date +%s%N)" # default is now
+
+date_str=()
+pbash.args.extract -l 'date:' -o date_str -- "$@" && input="$(cu.date -d "$date_str" +%s%N)"
+
+values=()
+
+pbash.args.is_switch_arg_enabled -l 'out-nanoseconds' -- "$@" && values+=("$input")
+pbash.args.is_switch_arg_enabled -l 'out-microseconds' -- "$@" && values+=( $(($input / 1000)) )
+pbash.args.is_switch_arg_enabled -l 'out-milliseconds' -- "$@" && values+=( $(($input / 1000000)) )
+pbash.args.is_switch_arg_enabled -l 'out-seconds' -- "$@" && values+=( "$(($input / 1000000000))" )
+
+cu.strings.is_equal "${#values[@]}" "1" || { cu.errors.echo "Only one should be passed out of --out-nanoseconds, --out-microseconds, --out-milliseconds or --out-seconds"; exit 1; }
+
+echo "$values"

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+cu.date.add_sub subtract "$@"

@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+function usage() {
+  cat <<EOF
+Usage: $(basename "$0") -n  [-k ] [--delete_namespace] [-h]
+
+Options:
+  -n, --namespace         Namespace
+  -k, --key               Key
+      --delete_namespace  Required to delete the namespace
+  -h, --help              Show this help message and exit
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  arg="$1"
+  shift
+  val=""
+  value_found=0
+  if [[ $# -gt 0 ]] && [[ ! "$1" == -* ]]; then
+    val="$1"
+    value_found=1
+  fi
+  case "$arg" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    -n|--namespace)
+      [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
+      [ "$value_found" -eq 1 ] && shift || exit 1
+      FLAGS_namespace+=("$val")
+      ;;
+    -k|--key)
+      [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
+      [ "$value_found" -eq 1 ] && shift || exit 1
+      FLAGS_key+=("$val")
+      ;;
+    --delete_namespace)
+      FLAGS_delete_namespace+=("true")
+      ;;
+    --namespace=*)
+      v="${arg#--namespace=}"
+      FLAGS_namespace+=("$v")
+      ;;
+    -n=*)
+      v="${arg#-n=}"
+      FLAGS_namespace+=("$v")
+      ;;
+    --key=*)
+      v="${arg#--key=}"
+      FLAGS_key+=("$v")
+      ;;
+    -k=*)
+      v="${arg#-k=}"
+      FLAGS_key+=("$v")
+      ;;
+    --delete_namespace=*)
+      v="${arg#--delete_namespace=}"
+      [[ "$v" =~ ^true$|^false$ ]] || { echo "Invalid value for arg ${arg%=$v}. It can only be true or false" >&2; exit 2; }
+      FLAGS_delete_namespace+=("$v")
+      ;;
+    *)
+      echo "Unrecognized arguments: $arg" >&2
+      exit 2
+      ;;
+  esac
+done
+
+[ -n "${FLAGS_namespace}" ] || { echo "Error: Namespace is required" >&2; exit 2; }
+
+if [ "${FLAGS_delete_namespace}" = "true" ]; then
+  _cu.persistent_kv delete "${FLAGS_namespace}"
+else
+  [ -z "${FLAGS_key}" ] && { echo "Error: --delete_namespace need to be set to delete the namespace" >&2; exit 2; }
+  _cu.persistent_kv delete "${FLAGS_namespace}" "${FLAGS_key}"
+fi

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+cu.uninstall --name "$1"

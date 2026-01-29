@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+internal_args=()
+
+while [[ "${#}" -gt "0" ]]; do
+  if [[ "${1}" == "--" ]]; then
+    shift
+    break
+  fi
+  internal_args+=( "${1}" )
+  shift
+done
+
+parsed=$(pflags parse --name "$0" --usage 'cu.lock -f  -t  [-h] -- <command>' ---- -s f -l file --type string -r -- -s t -l timeout -t number -r ---- "${internal_args[@]}") || exit
+
+eval "PARSED_INTERNAL_ARGS=( $parsed )"
+
+for (( i=0; i<${#PARSED_INTERNAL_ARGS[@]}; i+=2 )); do
+  case "${PARSED_INTERNAL_ARGS[i]}" in
+    --help)
+      printf '%s' "${PARSED_INTERNAL_ARGS[i+1]}"
+      exit 0
+      ;;
+    --file)
+      file="${PARSED_INTERNAL_ARGS[i+1]}"
+      ;;
+    --timeout)
+      timeout="${PARSED_INTERNAL_ARGS[i+1]}"
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+if [[ "${#}" -eq "0" ]]; then
+  cu.errors.echo "No command provided"
+  exit 1
+fi
+
+args=()
+cu.is_macos && args+=( -k -t ) || args+=( --timeout )
+args+=( "$timeout" )
+args+=( "$file" )
+
+cmd='flock'
+cu.is_macos && cmd=lockf
+$cmd "${args[@]}" "${@}"

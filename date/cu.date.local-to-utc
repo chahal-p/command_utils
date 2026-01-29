@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+cu.date -u -d "$(cu.date -d "$1")"

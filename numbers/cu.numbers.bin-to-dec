@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+b="$(cu.strings.join '' "$@")"
+cu.python.exec "
+b = '$b'
+print(int(b, base=2))
+"

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+m=$(getconf INT_MIN)
+for x in "$@"
+do
+  cu.numbers.is_number $x || { cu.errors.echo "Input should be only numbers"; exit 1; }
+  [ $x -gt $m ] && m=$x
+done
+echo -n "$m"

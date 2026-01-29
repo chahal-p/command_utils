@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+source pbash-args.sh || { echo "pbash-args.sh is not installed"; exit 1; }
+
+file=()
+pbash.args.extract -s 'f:' -l 'file:' -o file -- "$@" || { read -p "-f|--file (file path): "; file=$REPLY; }
+
+outfile=()
+pbash.args.extract -s 'o:' -l 'outfile:' -o outfile -- "$@" || { read -p "-o|--outfile (file path): "; outfile=$REPLY; }
+
+cu.eval -v -- openssl x509 -inform der -in "$file" -out "$outfile"

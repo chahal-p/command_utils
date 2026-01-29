@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+fullPath="$(cu.get_full_path "$1")"
+[ -d "$fullPath" ] || cu.eval -- mkdir -p "$fullPath"

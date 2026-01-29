@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+
+import sys
+from tabulate import tabulate
+
+cmd = sys.argv[0].split("/")[-1]
+
+usage = "Usage: {} -- <header1> <header2> ... -- <row1_col1> <row1_col2> ... -- <row2_col1> <row2_col2> ...".format(cmd)
+
+args = sys.argv[1:]
+
+table = []
+start_recording = False
+header_done = False
+headers = []
+rows = []
+row = []
+rows.append(row)
+max_col_count = 0
+for arg in args:
+  if not start_recording and arg == "--":
+    start_recording = True
+    continue
+  if start_recording:
+    if not header_done:
+      if arg == "--":
+        header_done = True
+      else:
+        headers.append(arg)
+        max_col_count = max(max_col_count, len(headers))
+    else:
+      if arg == "--":
+        row = []
+        rows.append(row)
+      else:
+        row.append(arg)
+        max_col_count = max(max_col_count, len(row))
+
+if not start_recording:
+  print(usage)
+  sys.exit(1)
+
+headers = headers + ["" for _ in range(max_col_count - len(headers))]
+print(tabulate(rows, headers=headers, tablefmt="grid"))

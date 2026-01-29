@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+datecmd='date'
+[[ "$OSTYPE" == "darwin"* ]] && datecmd='gdate'
+watch -t -n 1 $datecmd -u

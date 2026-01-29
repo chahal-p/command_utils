@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+kv="$1"
+
+value="${kv#*=}"
+key="${kv%"=$value"}"
+
+cu.install --name "$key" --content - <<EOF
+#!/usr/bin/env bash
+$value "\$@"
+EOF

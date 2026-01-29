@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+for arg in $(echo "$@" | tr ":" "\n")
+do
+  arg="$(echo -n $arg | base64 -d)"
+  [ "$?" == "0" ] || { cu.errors.echo "Deserialization of args failed"; exit 1; }
+  printf '%s\n' "$arg"
+done
+
+# Use below command to read array of args
+# readarray -t args <<< "$(cu.eval.deserialize_args "$serialized_args")"

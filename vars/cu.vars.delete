@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+parsed=$(pflags parse --name cu.vars.delete ---- \
+  -l var -t string -r --regex '^[a-zA-Z0-9_]+$' -h 'Name of var' ---- "$@") || exit
+
+eval set -- "$parsed"
+
+vars=()
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --help)
+      printf '%s' "$2"
+      exit 0
+      ;;
+    --var)
+      vars+=("$2")
+      shift 2
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+for var in ${vars[@]}; do
+  cu.uninstall --name "${var}"
+  _cu.persistent_kv delete _cu_vars "${var}"
+done

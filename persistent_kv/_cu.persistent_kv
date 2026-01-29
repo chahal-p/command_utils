@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+function echo_err() {
+  echo "$@" >&2
+}
+
+function usage() {
+  echo "Usage: $(basename "${0}") <subcommand> <namespace> <key>"
+  echo "Subcommands:"
+  echo "  list"
+  echo "  get"
+  echo "  set"
+  echo "  delete"
+  echo ""
+  echo "In set subcommand, stdin is used as the value"
+}
+
+CU_SUCCESS=0
+CU_ERROR=1
+CU_ERROR_USAGE=2
+CU_ERROR_NOT_FOUND=40
+
+ROOT_DIR="${HOME}/.local/share/pcommand_utils_persistent_kv_data"
+LOCK_DIR='/tmp/cu_persistent_kv_locks'
+
+[[ -d "${ROOT_DIR}" ]] || mkdir -p "${ROOT_DIR}" || exit
+[[ -d "${LOCK_DIR}" ]] || mkdir -p "${LOCK_DIR}" || exit
+
+subcommand="$1"
+namespace="$2"
+key="$3"
+
+if [[ "${subcommand}" =~ ^get|set$ ]]; then
+  if [[ -z "${namespace}" || -z "${key}" ]]; then
+    echo_err "Namespace and key are required"
+    exit $CU_ERROR_USAGE 
+  fi
+elif [[ "${subcommand}" == "delete" ]]; then
+  if [[ -z "${namespace}" ]]; then
+    echo_err "Namespace is required"
+    exit $CU_ERROR_USAGE 
+  fi
+elif [[ "${subcommand}" != "list" ]]; then
+  echo_err "Unknown subcommand: ${subcommand}"
+  usage
+  exit $CU_ERROR_USAGE
+fi
+
+if [[ -n "${namespace}" ]]; then
+  [[ "${#namespace}" -le 64 ]] || { echo_err "Invalid namespace: namespace should be at most 64 characters long"; exit $CU_ERROR_USAGE; }
+  [[ "${namespace}" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo_err "Invalid namespace: namespace should match regex ^[a-zA-Z0-9_-]+$"; exit $CU_ERROR_USAGE; }
+fi
+if [[ -n "${key}" ]]; then
+  [[ "${#key}" -le 64 ]] || { echo_err "Invalid key: key should be at most 64 characters long"; exit $CU_ERROR_USAGE; }
+  [[ "${key}" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo_err "Invalid key: key should match regex ^[a-zA-Z0-9_-]+$"; exit $CU_ERROR_USAGE; }
+fi
+
+########## BEGIN list subcommand ##########
+
+if [[ "${subcommand}" == "list" ]]; then
+  ls "${ROOT_DIR}" > /dev/null 2>&1 || exit $CU_ERROR
+  items=()
+  for x in $(ls -1 --color=never "${ROOT_DIR}" || exit $CU_ERROR); do
+    IFS='.' read -r n k <<< "${x}"
+    if [[ -z "${namespace}" ]]; then
+      items+=("${n}")
+    elif [[ "${n}" == "${namespace}" ]]; then
+      items+=("${k}")
+    fi
+  done
+  if [[ ${#items[@]} -eq 0 ]]; then
+    [[ -z "${namespace}" ]] || exit $CU_ERROR_NOT_FOUND
+  else
+    printf '%s\n' "${items[@]}" | sort -u
+  fi
+  exit $?
+fi
+########## END list subcommand ##########
+
+lock_cmd="flock"
+cu.is_macos && lock_cmd="lockf -k"
+
+key_lock_path=""
+[[ -n "${namespace}" ]] && [[ -n "${key}" ]] && key_lock_path="${LOCK_DIR}/${namespace}.${key}.lock"
+[[ -z "${key_lock_path}" ]] || touch "${key_lock_path}" || exit
+
+key_file="${ROOT_DIR}/${namespace}.${key}"
+
+########## BEGIN get subcommand ##########
+if [[ "${subcommand}" == "get" ]]; then
+  [ -f "${key_file}" ] || exit $CU_ERROR_NOT_FOUND
+  ${lock_cmd} "${key_lock_path}" cat "${key_file}"
+  exit $?
+fi
+########## END get subcommand ##########
+
+########## BEGIN set subcommand ##########
+if [[ "${subcommand}" == "set" ]]; then
+  ${lock_cmd} "${key_lock_path}" cat - > "${key_file}" 
+  exit $?
+fi
+########## END set subcommand ##########
+
+########## BEGIN delete subcommand ##########
+if [[ "${subcommand}" == "delete" ]]; then
+  if [[ -n "${key}" ]]; then
+    ${lock_cmd} "${key_lock_path}" rm "${key_file}" > /dev/null 2>&1
+  else
+    _cu.persistent_kv list "${namespace}" | while read -r k; do
+      _cu.persistent_kv delete "${namespace}" "${k}"
+    done
+  fi
+fi
+########## END delete subcommand ##########

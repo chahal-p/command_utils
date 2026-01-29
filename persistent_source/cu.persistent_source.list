@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+parsed=$(pflags parse --name "$(basename "$0")" ---- \
+  -l shell_type -t string --allowed bash --allowed zsh --default bash --default zsh ---- "${@}") || exit
+
+eval set -- "$parsed"
+
+shell_type=()
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --help)
+      printf '%s' "$2"
+      exit 0
+      ;;
+    --shell_type)
+      shell_type+=("$2")
+      shift 2
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+max_index_str_size=5 # for Index header
+
+index_names=()
+
+for sht in "${shell_type[@]}"; do
+  readarray -t names < <(_cu.persistent_kv list _cu_persistent_source_data_${sht})
+  for name in "${names[@]}"; do
+    index="$(_cu.persistent_kv get _cu_persistent_source_index_${sht} "$name")"
+    size="${#index}"
+    [[ "$index" == 2147483647 ]] && size=1
+    max_index_str_size="$((${size} > max_index_str_size ? ${size} : max_index_str_size))"
+    index_names+=("$sht:$index:$name")
+  done
+done
+
+IFS=$'\n' sorted_array=($(printf "%s\n" "${index_names[@]}" | sort -t: -k1,1 -k2n,2n -k3,3))
+
+header_printed=false
+for index_name in "${sorted_array[@]}"; do
+  IFS=':' read -r sh index name <<< "$index_name"
+  [ "$header_printed" = false ] && printf '%*s  %*s  %s\n' "$max_index_str_size" 'Index' 10 'Shell Type' 'Name' && printf '%*s  %*s  %s\n' "$max_index_str_size" '-----' 10 '----------' '----' && header_printed=true
+  [ -z "$name" ] && continue
+  [[ "$index" == 2147483647 ]] && index='-'
+  printf '%*s  %*s  %s\n' "$max_index_str_size" "$index" 10 "$sh" "$name"
+done

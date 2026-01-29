@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+[ -d /tmp/cu.eval.with_lock ] || mkdir -p /tmp/cu.eval.with_lock
+
+source pbash-args.sh || { echo "pbash-args.sh is not installed"; exit 1; }
+
+internal_args=()
+external_args=()
+
+pbash.args.split_with_double_hyphen --args1 internal_args --args2 external_args -- "$@"
+
+args=()
+
+pbash.args.extract -l lock_id: -o lock_id -- "${internal_args[@]}" || { cu.errors.echo "--lock_id is required"; exit 1; }
+pbash.args.extract -l timeout: -o timeout -- "${internal_args[@]}" || timeout="$(getconf INT_MAX)"
+
+cu.is_macos && args+=( -t "$timeout" ) || args+=( --timeout "$timeout" )
+
+args+=( "/tmp/cu.eval.with_lock/$lock_id" )
+
+cmd='flock'
+cu.is_macos && cmd=lockf
+
+if [ "$(cu.arrays.size "${external_args[@]}")" == "1" ]
+then
+  $cmd "${args[@]}" -c "cu.eval -v -- ${external_args[@]}"
+else
+  $cmd "${args[@]}" cu.eval -v -- "${external_args[@]}"
+fi

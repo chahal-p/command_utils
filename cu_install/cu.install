@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+function error_echo() {
+  echo -e "\e[01;31m${@}\e[0m"
+}
+
+name=()
+content=()
+file=()
+
+parsed=$(pflags parse --name "$(basename "$0")" \
+  ---- -l name -t string --default '' --help "Name of the installation" \
+    -- -l content -t string --default '' --help "Content needs to be written to the installed file.\n  If '-' provided then, content is read from stdin." \
+    -- -l file -t string --default '' --help "Path of file being installed" \
+    -- -l installation_path -t string --default "$(dirname "${BASH_SOURCE[0]}")" --help "Path where the file will be installed, default is where cu.install is installed" \
+    -- -l quiet -t bool --help "Stop printing installation logs" \
+  ---- "$@") || exit $?
+
+eval set -- "$parsed"
+
+while [[ $# -gt 0 ]]; do
+  [[ "$1" == "--" ]] && { shift; break; }
+  case $1 in
+    --help)
+      printf '%s' "$2"
+      exit 0
+      ;;
+    *)
+      arg_name="${1#-}"
+      arg_name="${arg_name#-}"
+      eval "${arg_name}='${2//\'/\'\\\'\'}'"
+      shift 2
+      ;;
+  esac
+done
+
+installation_path="$(realpath "$installation_path")"
+
+[ "$name" == "" ] && [ "$content" == "" ] && [ "$file" == "" ] && { error_echo "No argument provided."; exit 1; }
+[ "$content" == "" ] && [ "$file" == "" ] && { error_echo "At least one of --content or --file is required argument."; exit 1; }
+[ ! "$content" == "" ] && [ ! "$file" == "" ] && { error_echo "Only one of --content or --file is expected."; exit 1; }
+[ ! "$content" == "" ] && [ "$name" == "" ] && { error_echo "--name is required argument along with --content."; exit 1; }
+
+[ "$name" == "" ] && name="$(basename "$(realpath "$file")")"
+
+[ -d "$installation_path" ] || mkdir -p "$installation_path"
+
+mkdir -p /tmp/cu.install_bins
+
+rp=""
+if [ "$content" == "-" ]
+then
+  rp="/tmp/cu.install_bins/$name"
+  cat - > "$rp"
+elif [ ! "$content" == "" ]
+then
+  rp="/tmp/cu.install_bins/$name"
+  cat <<< "$content" > "$rp"
+else
+  rp="$(realpath "$file")"
+fi
+
+wp="${installation_path}/${name}"
+
+[ -f "$rp" ] || { echo "Installation failed, $rp file do not exist"; exit 1; }
+
+[ "$quiet" == "true" ] || echo "Installing: $name"
+cp "$rp" "$wp" && chmod +x "$wp" || { echo "Installation failed"; exit 1; }

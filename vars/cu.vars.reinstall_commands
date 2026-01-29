@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+_cu.persistent_kv list _cu_vars | while read -r var; do
+  cu.vars.create --var "${var}" || exit
+done

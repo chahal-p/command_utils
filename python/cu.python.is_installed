@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+out=$(cu.python -c 'print("", end="")' 2>&1)
+[ "$out" == "" ] || exit 1
+exit 0

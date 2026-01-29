@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+cu.python.print "bin(int(\"$1\", 8))[2:]"

@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+source pbash-args.sh || { echo "pbash-args.sh is not installed"; exit 1; }
+
+op="$1"
+shift
+cu.strings.is_equal "$op" "add" || cu.strings.is_equal "$op" "subtract" || { cu.errors.echo "Invalid operation, supported operations are 'add' or 'subtract'"; exit 1; }
+
+base="$(cu.date.to-epoch --out-nanoseconds)"
+date_str=()
+pbash.args.extract -l 'date:' -o date_str -- "$@" && base="$(cu.date.to-epoch --date "$date_str" --out-nanoseconds)"
+diff=0
+
+value=()
+pbash.args.extract -l 'nanoseconds:' -o value -- "$@" && diff=$(($diff + $value))
+pbash.args.extract -l 'microseconds:' -o value -- "$@" && diff=$(($diff + $value * 1000))
+pbash.args.extract -l 'milliseconds:' -o value -- "$@" && diff=$(($diff + $value * 1000000))
+pbash.args.extract -l 'seconds:' -o value -- "$@" && diff=$(($diff + $value * 1000000000))
+pbash.args.extract -l 'minutes:' -o value -- "$@" && diff=$(($diff + $value * 1000000000 * 60))
+pbash.args.extract -l 'hours:' -o value -- "$@" && diff=$(($diff + $value * 1000000000 * 60 * 60))
+pbash.args.extract -l 'days:' -o value -- "$@" && diff=$(($diff + $value * 1000000000 * 60 * 60 * 24))
+
+newtime=""
+
+cu.strings.is_equal "$op" "add" && newtime=$(($base + $diff))
+cu.strings.is_equal "$op" "subtract" && newtime=$(($base - $diff))
+
+tz='local'
+pbash.args.is_switch_arg_enabled -l 'out-utc' -- "$@" && tz='utc'
+
+
+if [ "$tz" == "utc" ]
+then
+  cu.date.from-epoch --nanoseconds "$newtime" --out-utc
+else
+  cu.date.from-epoch --nanoseconds "$newtime"
+fi

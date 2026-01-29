@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+copy_cmd='xclip -selection clipboard'
+cu.is_macos && copy_cmd='pbcopy'
+
+if [ -z "$1" ]
+then
+  cat | $copy_cmd
+else
+  cat <<< "$1" | $copy_cmd
+fi

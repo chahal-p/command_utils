@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+if [ "$1" == '-' ]; then
+  cu.python "$@"
+  exit
+fi
+
+code="$1"
+shift
+cat <<EOF | cu.python - "$@"
+$code
+EOF

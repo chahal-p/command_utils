@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+function usage() {
+  cat << EOF
+Usage: $(basename "$0") [-n ] [-h]
+
+Options:
+  -n, --namespace   Namespace
+  -h, --help        Show this help message and exit
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  arg="$1"
+  shift
+  val=""
+  value_found=0
+  if [[ $# -gt 0 ]] && [[ ! "$1" == -* ]]; then
+    val="$1"
+    value_found=1
+  fi
+  case "$arg" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    -n|--namespace)
+      [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
+      [ "$value_found" -eq 1 ] && shift || exit 1
+      FLAGS_namespace+=("$val")
+      ;;
+    --namespace=*)
+      v="${arg#--namespace=}"
+      FLAGS_namespace+=("$v")
+      ;;
+    -n=*)
+      v="${arg#-n=}"
+      FLAGS_namespace+=("$v")
+      ;;
+    *)
+      echo "Unrecognized arguments: $arg" >&2
+      exit 2
+      ;;
+  esac
+done
+
+args=()
+[ -n "${FLAGS_namespace}" ] && args+=("${FLAGS_namespace}")
+_cu.persistent_kv list "${args[@]}"

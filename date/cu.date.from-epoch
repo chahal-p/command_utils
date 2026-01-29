@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+source pbash-args.sh || { echo "pbash-args.sh is not installed"; exit 1; }
+
+pbash.args.atleast_one_arg_present -l 'nanoseconds:' -l 'microseconds:' -l 'milliseconds:' -l 'seconds:' -- "$@" ||
+{ cu.errors.echo "At least one of args --nanoseconds, --microseconds, --milliseconds or --seconds is required"; exit 1; }
+
+values=()
+
+value=()
+
+pbash.args.extract -l 'nanoseconds:' -o value -- "$@" && values+=("$value")
+pbash.args.extract -l 'microseconds:' -o value -- "$@" && values+=( $(($value * 1000)) )
+pbash.args.extract -l 'milliseconds:' -o value -- "$@" && values+=( $(($value * 1000000)) )
+pbash.args.extract -l 'seconds:' -o value -- "$@" && values+=( "$(($value * 1000000000))" )
+
+cu.strings.is_equal "${#values[@]}" "1" || { cu.errors.echo "Only one should be passed out of --nanoseconds, --microseconds, --milliseconds or --seconds"; exit 1; }
+
+nanoseconds="$values"
+
+tz='local'
+pbash.args.is_switch_arg_enabled -l 'out-utc' -- "$@" && tz='utc'
+
+seconds=$(($nanoseconds / 1000000000))
+rem=$(($nanoseconds % 1000000000))
+
+if [ "$tz" == "utc" ]
+then
+  cu.date -u -d @$seconds +"%Y-%m-%dT%H:%M:%S.${rem}Z"
+else
+  cu.date -d @$seconds +"%Y-%m-%dT%H:%M:%S.${rem}%:z"
+fi

@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+
+function usage() {
+  cat << EOF
+Usage: $(basename "$0") -n  -k  [-v ] [-h]
+
+Options:
+  -n, --namespace   Namespace
+  -k, --key         Key
+  -v, --value       Value (default: stdin)
+  -h, --help        show this help message and exit
+EOF
+}
+
+read_stdin=true
+
+while [[ $# -gt 0 ]]; do
+  arg="$1"
+  shift
+  val=""
+  value_found=0
+  if [[ $# -gt 0 ]] && [[ ! "$1" == -* ]]; then
+    val="$1"
+    value_found=1
+  fi
+  case "$arg" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    -n|--namespace)
+      [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
+      [ "$value_found" -eq 1 ] && shift || exit 1
+      FLAGS_namespace+=("$val")
+      ;;
+    -k|--key)
+      [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
+      [ "$value_found" -eq 1 ] && shift || exit 1
+      FLAGS_key+=("$val")
+      ;;
+    -v|--value)
+      [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
+      [ "$value_found" -eq 1 ] && shift || exit 1
+      FLAGS_value+=("$val")
+      read_stdin=false
+      ;;
+    --namespace=*)
+      v="${arg#--namespace=}"
+      FLAGS_namespace+=("$v")
+      ;;
+    -n=*)
+      v="${arg#-n=}"
+      FLAGS_namespace+=("$v")
+      ;;
+    --key=*)
+      v="${arg#--key=}"
+      FLAGS_key+=("$v")
+      ;;
+    -k=*)
+      v="${arg#-k=}"
+      FLAGS_key+=("$v")
+      ;;
+    --value=*)
+      v="${arg#--value=}"
+      FLAGS_value+=("$v")
+      read_stdin=false
+      ;;
+    -v=*)
+      v="${arg#-v=}"
+      FLAGS_value+=("$v")
+      read_stdin=false
+      ;;
+    *)
+      echo "Unrecognized arguments: $arg" >&2
+      exit 2
+      ;;
+  esac
+done
+
+
+if [ "$read_stdin" = true ]; then
+  cat | _cu.persistent_kv set "${FLAGS_namespace}" "${FLAGS_key}"
+else
+  printf "%s" "${FLAGS_value}" | _cu.persistent_kv set "${FLAGS_namespace}" "${FLAGS_key}"
+fi

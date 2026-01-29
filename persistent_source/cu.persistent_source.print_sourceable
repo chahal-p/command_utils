@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+function usage {
+  cat <<EOF
+Usage: $(basename "$0") --shell_type  [-h]
+
+Options:
+  --shell_type 
+  -h, --help     Show this help message and exit
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  arg="$1"
+  shift
+  val=""
+  value_found=0
+  if [[ $# -gt 0 ]] && [[ ! "$1" == -* ]]; then
+    val="$1"
+    value_found=1
+  fi
+  case "$arg" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --shell_type)
+      [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
+      [ "$value_found" -eq 1 ] && shift || exit 1
+      FLAGS_shell_type+=("$val")
+      ;;
+    --shell_type=*)
+      v="${arg#--shell_type=}"
+      FLAGS_shell_type+=("$v")
+      ;;
+    *)
+      echo "Unrecognized arguments: $arg" >&2
+      exit 2
+      ;;
+  esac
+done
+
+[[ "$FLAGS_shell_type" =~ ^bash$|^zsh$ ]] || { echo "Invalid value for --shell_type. Allowed values are bash and zsh" >&2; exit 2; }
+
+index_names=()
+
+readarray -t names < <(_cu.persistent_kv list _cu_persistent_source_data_${FLAGS_shell_type})
+for name in "${names[@]}"; do
+  index="$(_cu.persistent_kv get _cu_persistent_source_index_${FLAGS_shell_type} "$name")"
+  index_names+=("$FLAGS_shell_type:$index:$name")
+done
+
+IFS=$'\n' sorted_array=($(printf "%s\n" "${index_names[@]}" | sort -t: -k1,1 -k2n,2n -k3,3))
+
+for index_name in "${sorted_array[@]}"; do
+  IFS=':' read -r sh index name <<< "$index_name"
+  echo "# ${sh} script from: $name"
+  _cu.persistent_kv get _cu_persistent_source_data_${FLAGS_shell_type} "$name"
+  echo ""
+done
