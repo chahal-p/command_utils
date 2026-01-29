@@ -24,6 +24,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 for var in ${vars[@]}; do
-  cu.uninstall --name "${var}"
+  cu.uninstall --name "${var}" --installation_path "${HOME}/.local/bin"
   _cu.persistent_kv delete _cu_vars "${var}"
 done

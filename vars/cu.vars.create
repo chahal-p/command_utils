@@ -35,7 +35,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 for var in ${vars[@]}; do
-  cu.install --name "${var}" --content - <<EOF
+  cu.install --name "${var}" --installation_path "${HOME}/.local/bin" --content - <<EOF
 #!/usr/bin/env bash
 if [ "\${#@}" -eq 0 ]; then
   _cu.persistent_kv get _cu_vars "${var}"
