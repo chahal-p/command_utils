@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-
-cu.strings.is_equal "" "$@" || exit 1
-exit 0

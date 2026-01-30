@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-
-cu.is_macos || { cu.errors.echo "Not supported"; exit 1; }
-open -a TextEdit "$1"
