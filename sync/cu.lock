@@ -1,48 +1,91 @@
 #!/usr/bin/env bash
 
-internal_args=()
+function usage() {
+  cat <<EOF
+Usage: $0 [options]
 
-while [[ "${#}" -gt "0" ]]; do
-  if [[ "${1}" == "--" ]]; then
-    shift
-    break
-  fi
-  internal_args+=( "${1}" )
+Options:
+      --fd       File descriptor
+  -t, --timeout  Timeout in seconds
+  -u, --unlock   Unlock the file descriptor
+  -h, --help     Show this help message
+EOF
+}
+
+cmd="flock"
+time_arg="--timeout"
+unlock_supported="true"
+if cu.is_macos; then
+  cmd="lockf"
+  time_arg="-t"
+  unlock_supported="false"
+fi
+
+while [[ $# -gt 0 ]]; do
+  arg="$1"
   shift
-done
-
-parsed=$(pflags parse --name "$0" --usage 'cu.lock -f  -t  [-h] -- <command>' ---- -s f -l file --type string -r -- -s t -l timeout -t number -r ---- "${internal_args[@]}") || exit
-
-eval "PARSED_INTERNAL_ARGS=( $parsed )"
-
-for (( i=0; i<${#PARSED_INTERNAL_ARGS[@]}; i+=2 )); do
-  case "${PARSED_INTERNAL_ARGS[i]}" in
-    --help)
-      printf '%s' "${PARSED_INTERNAL_ARGS[i+1]}"
+  val=""
+  value_found=0
+  if [[ $# -gt 0 ]] && [[ ! "$1" == -* ]]; then
+    val="$1"
+    value_found=1
+  fi
+  case "$arg" in
+    -h|--help)
+      usage
       exit 0
       ;;
-    --file)
-      file="${PARSED_INTERNAL_ARGS[i+1]}"
+    --fd)
+      [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
+      shift || exit 1
+      FLAGS_fd="$val"
       ;;
-    --timeout)
-      timeout="${PARSED_INTERNAL_ARGS[i+1]}"
+    -t|--timeout)
+      [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
+      shift || exit 1
+      FLAGS_timeout="$val"
+      ;;
+    -u|--unlock)
+      FLAGS_unlock="true"
+      ;;
+    --fd=*)
+      val="${arg#--fd=}"
+      FLAGS_fd="$val"
+      ;;
+    --timeout=*)
+      val="${arg#--timeout=}"
+      FLAGS_timeout="$val"
+      ;;
+    -t=*)
+      val="${arg#-t=}"
+      FLAGS_timeout="$val"
+      ;;
+    --unlock=*)
+      val="${arg#--unlock=}"
+      [[ "$val" =~ ^(true|false)$ ]] || { echo "Invalid value ($val) for arg ${arg%=$val}. It can only be true or false" >&2; exit 2; }
+      FLAGS_unlock="$val"
+      ;;
+    -u=*)
+      val="${arg#-u=}"
+      [[ "$val" =~ ^(true|false)$ ]] || { echo "Invalid value ($val) for arg ${arg%=$val}. It can only be true or false" >&2; exit 2; }
+      FLAGS_unlock="$val"
       ;;
     *)
-      break
+      echo "Unrecognized arguments: $arg" >&2
+      exit 2
       ;;
   esac
 done
 
-if [[ "${#}" -eq "0" ]]; then
-  cu.errors.echo "No command provided"
-  exit 1
+[ -z "$FLAGS_fd" ] && { echo "No value given for --fd" >&2; exit 2; }
+
+if [ -n "$FLAGS_unlock" ]; then
+  [ "$unlock_supported" == "false" ] && { echo "Unlock not supported for $cmd" >&2; exit 2; }
+  $cmd --unlock "$FLAGS_fd"
+else
+  if [ -z "$FLAGS_timeout" ]; then
+    $cmd "$FLAGS_fd"
+  else
+    $cmd $time_arg "$FLAGS_timeout" "$FLAGS_fd"
+  fi
 fi
-
-args=()
-cu.is_macos && args+=( -k -t ) || args+=( --timeout )
-args+=( "$timeout" )
-args+=( "$file" )
-
-cmd='flock'
-cu.is_macos && cmd=lockf
-$cmd "${args[@]}" "${@}"
