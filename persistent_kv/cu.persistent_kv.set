@@ -8,6 +8,7 @@ Options:
   -n, --namespace   Namespace
   -k, --key         Key
   -v, --value       Value (default: stdin)
+  -f, --force       Overwrite existing entry (default: false)
   -h, --help        show this help message and exit
 EOF
 }
@@ -30,45 +31,58 @@ while [[ $# -gt 0 ]]; do
       ;;
     -n|--namespace)
       [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
-      [ "$value_found" -eq 1 ] && shift || exit 1
-      FLAGS_namespace+=("$val")
+      shift || exit 1
+      FLAGS_namespace="$val"
       ;;
     -k|--key)
       [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
-      [ "$value_found" -eq 1 ] && shift || exit 1
-      FLAGS_key+=("$val")
+      shift || exit 1
+      FLAGS_key="$val"
       ;;
     -v|--value)
       [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
-      [ "$value_found" -eq 1 ] && shift || exit 1
-      FLAGS_value+=("$val")
+      shift || exit 1
+      FLAGS_value="$val"
       read_stdin=false
       ;;
+    -f|--force)
+      FLAGS_force="true"
+      ;;
     --namespace=*)
-      v="${arg#--namespace=}"
-      FLAGS_namespace+=("$v")
+      val="${arg#--namespace=}"
+      FLAGS_namespace="$val"
       ;;
     -n=*)
-      v="${arg#-n=}"
-      FLAGS_namespace+=("$v")
+      val="${arg#-n=}"
+      FLAGS_namespace="$val"
       ;;
     --key=*)
-      v="${arg#--key=}"
-      FLAGS_key+=("$v")
+      val="${arg#--key=}"
+      FLAGS_key="$val"
       ;;
     -k=*)
-      v="${arg#-k=}"
-      FLAGS_key+=("$v")
+      val="${arg#-k=}"
+      FLAGS_key="$val"
       ;;
     --value=*)
-      v="${arg#--value=}"
-      FLAGS_value+=("$v")
+      val="${arg#--value=}"
+      FLAGS_value="$val"
       read_stdin=false
       ;;
     -v=*)
-      v="${arg#-v=}"
-      FLAGS_value+=("$v")
+      val="${arg#-v=}"
+      FLAGS_value="$val"
       read_stdin=false
+      ;;
+    --force=*)
+      val="${arg#--force=}"
+      [[ "$val" =~ ^(true|false)$ ]] || { echo "Invalid value ($val) for arg ${arg%=$val}. It can only be true or false" >&2; exit 2; }
+      FLAGS_force="$val"
+      ;;
+    -f=*)
+      val="${arg#-f=}"
+      [[ "$val" =~ ^(true|false)$ ]] || { echo "Invalid value ($val) for arg ${arg%=$val}. It can only be true or false" >&2; exit 2; }
+      FLAGS_force="$val"
       ;;
     *)
       echo "Unrecognized arguments: $arg" >&2
@@ -77,9 +91,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+set_cmd="set"
+[[ "$FLAGS_force" == "true" ]] && set_cmd="set_overwrite"
 
 if [ "$read_stdin" = true ]; then
-  cat | _cu.persistent_kv set "${FLAGS_namespace}" "${FLAGS_key}"
+  cat | _cu.persistent_kv "${set_cmd}" "${FLAGS_namespace}" "${FLAGS_key}"
 else
-  printf "%s" "${FLAGS_value}" | _cu.persistent_kv set "${FLAGS_namespace}" "${FLAGS_key}"
+  printf "%s" "${FLAGS_value}" | _cu.persistent_kv "${set_cmd}" "${FLAGS_namespace}" "${FLAGS_key}"
 fi

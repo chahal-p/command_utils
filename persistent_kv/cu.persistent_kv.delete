@@ -70,7 +70,9 @@ done
 [ -n "${FLAGS_namespace}" ] || { echo "Error: Namespace is required" >&2; exit 2; }
 
 if [ "${FLAGS_delete_namespace}" = "true" ]; then
-  _cu.persistent_kv delete "${FLAGS_namespace}"
+  _cu.persistent_kv list "${FLAGS_namespace}" | while read -r k; do
+    _cu.persistent_kv delete "${FLAGS_namespace}" "${k}"
+  done
 else
   [ -z "${FLAGS_key}" ] && { echo "Error: --delete_namespace need to be set to delete the namespace" >&2; exit 2; }
   _cu.persistent_kv delete "${FLAGS_namespace}" "${FLAGS_key}"

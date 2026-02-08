@@ -31,5 +31,5 @@ fi
 
 [ -z "$index" ] && index=2147483647
 
-echo -n "$index" | _cu.persistent_kv set "_cu_persistent_source_index_${shell_type}" "$name"
-cat "$file" | _cu.persistent_kv set "_cu_persistent_source_data_${shell_type}" "$name"
+echo -n "$index" | _cu.persistent_kv set_overwrite "_cu_persistent_source_index_${shell_type}" "$name"
+cat "$file" | _cu.persistent_kv set_overwrite "_cu_persistent_source_data_${shell_type}" "$name"

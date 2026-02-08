@@ -41,14 +41,14 @@ if [ "\${#@}" -eq 0 ]; then
   _cu.persistent_kv get _cu_vars "${var}"
 else
   if [[ "\$1" == '-' ]]; then
-    _cu.persistent_kv set _cu_vars "${var}"
+    _cu.persistent_kv set_overwrite _cu_vars "${var}"
   else
-    printf "%s" "\$1" | _cu.persistent_kv set _cu_vars "${var}"
+    printf "%s" "\$1" | _cu.persistent_kv set_overwrite _cu_vars "${var}"
   fi
   printf "%s\n" "Value is set in ${var}. Use '${var}' without args to get the value."
 fi
 EOF
   _cu.persistent_kv get _cu_vars "${var}" > /dev/null 2>&1
-  [ $? -eq 40 ] && echo -n | _cu.persistent_kv set _cu_vars "${var}"
+  [ $? -eq 40 ] && echo -n | _cu.persistent_kv set_overwrite _cu_vars "${var}"
 done
 exit 0
