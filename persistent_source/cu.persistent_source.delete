@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 parsed=$(pflags parse --name "$(basename "$0")" ---- \
-  -s n -l name -t string -r --regex "^[a-zA-Z0-9_-]+$" -- \
-  -l shell_type -t string -r --allowed bash --allowed zsh ---- "${@}") || exit
+  -s n -l name -t string --regex "^[a-zA-Z0-9_-]+$" -- \
+  -l shell_type -t string --allowed bash --allowed zsh ---- "${@}") || exit
 
 eval set -- "$parsed"
 

@@ -12,7 +12,7 @@ Set value by reading from stdin:
 
 Get value:
   xyz' --name cu.vars.create ---- \
-  -l var -t string -r --regex '^[a-zA-Z0-9_]+$' -h 'Name of var' ---- "$@") || exit
+  -l var -t string --regex '^[a-zA-Z0-9_]+$' -h 'Name of var' ---- "$@") || exit
 
 eval set -- "$parsed"
 

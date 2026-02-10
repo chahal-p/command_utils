@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 parsed_args=$(pflags parse --name "$(basename "${0}")" ---- \
-  -s n -l name -t string -r --regex "^[a-zA-Z0-9_-]+$" -h "Name of the workflow" -- \
+  -s n -l name -t string --regex "^[a-zA-Z0-9_-]+$" -h "Name of the workflow" -- \
   -l at -t number --default 0 --regex "^[0-9]+$" -h "Run the workflow at epoch time in seconds" -- \
   -l recurring -t bool -h "Run the workflow recurring" -- \
   -l interval -t number --regex "^[0-9]+$" -h "Interval between runs in seconds" -- \

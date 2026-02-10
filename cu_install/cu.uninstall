@@ -4,7 +4,7 @@ function error_echo() {
   echo -e "\e[01;31m${@}\e[0m"
 }
 
-parsed=$(pflags parse --name "$0" ---- -l name -t string -r -h "Name of command" \
+parsed=$(pflags parse --name "$0" ---- -l name -t string -h "Name of command" \
   -- -l installation_path -t string --default "$(dirname "${BASH_SOURCE[0]}")" --help "Path where the file was installed, default is where cu.uninstall is installed" \
   ---- "$@") || exit
 

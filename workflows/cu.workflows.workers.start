@@ -3,7 +3,7 @@
 UNIQUE_ID="0bbb4092af6f3af7467080f84839aad3366c752ca630a1affcd2f68f63ba4a83"
 
 parsed_args=$(pflags parse --name "$(basename "${0}")" ---- \
-  -s w -l workers -t number -r --regex "^[0-9]+$" -h "Number of workers" -- \
+  -s w -l workers -t number --regex "^[0-9]+$" -h "Number of workers" -- \
   -l logfile -t string -h "Path to output log file" --default "" ---- "$@") || exit
 
 eval set -- "${parsed_args}"

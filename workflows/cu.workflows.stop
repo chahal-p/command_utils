@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 parsed_args=$(pflags parse --name "$(basename "${0}")" ---- \
-  -s n -l name -t string -r --regex "^[a-zA-Z0-9_-]+$" -h "Name of the workflow" ---- "$@") || exit
+  -s n -l name -t string --regex "^[a-zA-Z0-9_-]+$" -h "Name of the workflow" ---- "$@") || exit
 
 eval set -- "${parsed_args}"
 
