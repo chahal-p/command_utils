@@ -44,7 +44,7 @@ done
 
 index_names=()
 
-readarray -t names < <(_cu.persistent_kv list _cu_persistent_source_data_${FLAGS_shell_type})
+readarray -t names < <(_cu.persistent_kv list _cu_persistent_source_data_${FLAGS_shell_type} 2>/dev/null)
 for name in "${names[@]}"; do
   index="$(_cu.persistent_kv get _cu_persistent_source_index_${FLAGS_shell_type} "$name")"
   index_names+=("$FLAGS_shell_type:$index:$name")

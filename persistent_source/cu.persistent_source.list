@@ -28,7 +28,7 @@ max_index_str_size=5 # for Index header
 index_names=()
 
 for sht in "${shell_type[@]}"; do
-  readarray -t names < <(_cu.persistent_kv list _cu_persistent_source_data_${sht})
+  readarray -t names < <(_cu.persistent_kv list _cu_persistent_source_data_${sht} 2>/dev/null)
   for name in "${names[@]}"; do
     index="$(_cu.persistent_kv get _cu_persistent_source_index_${sht} "$name")"
     size="${#index}"

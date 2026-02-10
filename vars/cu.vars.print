@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-readarray -t vars < <(_cu.persistent_kv list _cu_vars)
+readarray -t vars < <(_cu.persistent_kv list _cu_vars 2>/dev/null)
 
 l=0
 for var in "${vars[@]}"; do
