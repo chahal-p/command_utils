@@ -2,7 +2,7 @@
 
 table=( -- "Name" "Next Scheduled" "$(printf "%s\n %s" "Recurring Interval" "(seconds)")" )
 
-for name in $(_cu.persistent_kv list _cu_workflows); do
+for name in $(_cu.persistent_kv list _cu_workflows 2>/dev/null); do
   table+=(--)
   table+=("${name}")
   scheduled=$(_cu.persistent_kv get _cu_workflows_scheduled "${name}" 2>/dev/null)
