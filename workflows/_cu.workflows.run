@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+
+WORKER_ID="$1"
+
+[[ ":$PATH:" == *":/usr/local/bin:"* ]] || export PATH="/usr/local/bin:$PATH"
+[[ ":$PATH:" == *":$HOME/.local/bin:"* ]] || export PATH="$HOME/.local/bin:$PATH"
+
+LOCK_DIR="/tmp/cu_workflows_locks_${USER}"
+[[ -d "${LOCK_DIR}" ]] || mkdir -p "${LOCK_DIR}" || exit
+
+function log_info() {
+  echo "[INFO] [WORKER ${WORKER_ID}] $(date +%Y-%m-%dT%H:%M:%S%z) $1"
+}
+
+function log_error() {
+  echo "[ERROR] [WORKER ${WORKER_ID}] $(date +%Y-%m-%dT%H:%M:%S%z) $1" >&2
+}
+
+function lock_workflow() {
+  local name="$1"
+  local lock_file="${LOCK_DIR}/${name}.lock"
+  exec 200>"${lock_file}"
+  cu.lock --fd 200 --timeout 0
+}
+
+function unlock_workflow() {
+  exec 200>&-
+}
+
+
+
+function workflow_pop() {
+  local name="$1"
+  lock_workflow "$name" || return 1
+  scheduled_at="$(_cu.persistent_kv get _cu_workflows_scheduled "$name" 2>/dev/null)" || { unlock_workflow; return 1; }
+  [[ ${scheduled_at%.*} -le $(date +%s) ]] || { unlock_workflow; return 1; }
+  local scheduled_at="$(date +%s.%N -d "+1 day")"
+  printf '%s' "$scheduled_at" | _cu.persistent_kv set_overwrite _cu_workflows_scheduled "$name"
+  unlock_workflow
+  return 0
+}
+
+function schedule_next_workflow() {
+  local name="$1"
+  local interval="$(_cu.persistent_kv get _cu_workflows_intervals "${name}" 2>/dev/null)"
+  local code=$?
+  [ $code -eq 40 ] && { _cu.persistent_kv delete _cu_workflows_scheduled "$name" 2>/dev/null; return $code; }
+  [ $code -ne 0 ] && { log_error "Failed to get workflow interval for ${name}"; return $code; }
+  local scheduled_at="$(date +%s.%N -d "+${interval} seconds")"
+  printf '%s' "$scheduled_at" | _cu.persistent_kv set_overwrite _cu_workflows_scheduled "$name"
+}
+
+function run_workflow() {
+  local name="$1"
+  local wf_encoded_cmd="$(_cu.persistent_kv get _cu_workflows "${name}" 2>/dev/null)"
+  local code=$?
+  [ $code -eq 0 ] || { [ $code -eq 40 ] && { log_error "Workflow ${name} not found"; exit $code; } || exit $code; }
+
+  local wf_cmd=()
+  IFS=':' read -ra wf_cmd <<< "$wf_encoded_cmd"
+
+  for ((i = 0; i < ${#wf_cmd[@]}; i++)); do
+    wf_cmd[i]="$(printf '%s' "${wf_cmd[i]}" | base64 -d)"
+  done
+
+  "${wf_cmd[@]}"
+}
+
+wf_scheduled=()
+
+readarray -t wfs < <(_cu.persistent_kv list _cu_workflows_scheduled 2>/dev/null)
+
+for wf_name in "${wfs[@]}"; do
+  wf_at=$(_cu.persistent_kv get _cu_workflows_scheduled "${wf_name}" 2>/dev/null)
+  code=$?
+  [ $code -eq 0 ] || { [ $code -eq 40 ] && continue || { log_error "Failed to get workflow scheduled time for ${wf_name}"; exit $code; } }
+  [[ ${wf_at%.*} -le $(date +%s) ]] && wf_scheduled+=("${wf_name}:${wf_at}") || log_info "Workflow ${wf_name} is not ready to run."
+done
+
+IFS=$'\n' sorted_wf_scheduled=($(printf "%s\n" "${wf_scheduled[@]}" | sort -t: -k2n,2n))
+
+log_info "Checking for workflows ready to run"
+
+for wf_schedule in "${sorted_wf_scheduled[@]}"; do
+  wf_name="${wf_schedule%:*}"
+  workflow_pop "$wf_name" || continue
+  log_info "Workflow ${wf_name} is ready to run"
+  schedule_next_workflow "$wf_name"
+  log_info "Workflow ${wf_name} is scheduled for next run in advance"
+  log_info "Running workflow ${wf_name}"
+  run_workflow "$wf_name"
+  log_info "Workflow ${wf_name} is done"
+done

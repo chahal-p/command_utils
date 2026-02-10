@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+UNIQUE_ID="0bbb4092af6f3af7467080f84839aad3366c752ca630a1affcd2f68f63ba4a83"
+
+crontab -l 2>/dev/null | grep -q "#$UNIQUE_ID" || { printf 'Workers not running\n' >&2; exit 1; }
+crontab -l 2>/dev/null | grep -v "#$UNIQUE_ID" | crontab -
+printf '%s\n' 'Workers stopped.'

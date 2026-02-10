@@ -80,6 +80,7 @@ install=(
 "sync"
 "utils"
 "vars"
+"workflows"
 )
 
 echo '#!/usr/bin/env bash' > "/tmp/_cu.completes.bash_${USER}"
