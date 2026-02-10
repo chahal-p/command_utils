@@ -3,7 +3,7 @@
 parsed_args=$(pflags parse --name "$(basename "${0}")" ---- \
   -s n -l name -t string --regex "^[a-zA-Z0-9_-]+$" -h "Name of the workflow" -- \
   -l at -t number --default 0 --regex "^[0-9]+$" -h "Run the workflow at epoch time in seconds" -- \
-  -l interval -t number --regex "^[0-9]+$" -h "Interval between runs in seconds" --default '' -- \
+  -l interval -t number --regex "^[0-9]+$" -h "Interval between runs in seconds\n  (Optional) If not given, workflow is not recurring." --default '' -- \
   ---- "$@") || exit
 
 eval set -- "${parsed_args}"
