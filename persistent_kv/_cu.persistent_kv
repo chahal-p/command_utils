@@ -2,9 +2,12 @@
 
 set -eo pipefail
 
+
 function echo_err() {
   echo "cu.persistent_kv: $@" >&2
 }
+
+USER="$(id -un)" || { echo_err "Failed to get user name"; exit 1; }
 
 function usage() {
   echo "Usage: $(basename "${0}") <subcommand> <namespace> <key>"

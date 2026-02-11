@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
 
-WORKER_ID="$1"
+WORKER_ID="$$"
 
 [[ ":$PATH:" == *":/usr/local/bin:"* ]] || export PATH="/usr/local/bin:$PATH"
 [[ ":$PATH:" == *":$HOME/.local/bin:"* ]] || export PATH="$HOME/.local/bin:$PATH"
-
-LOCK_DIR="/tmp/cu_workflows_locks_${USER}"
-[[ -d "${LOCK_DIR}" ]] || mkdir -p "${LOCK_DIR}" || exit
 
 function log_info() {
   echo "[INFO] [WORKER ${WORKER_ID}] $(date +%Y-%m-%dT%H:%M:%S%z) $1"
@@ -15,6 +12,12 @@ function log_info() {
 function log_error() {
   echo "[ERROR] [WORKER ${WORKER_ID}] $(date +%Y-%m-%dT%H:%M:%S%z) $1" >&2
 }
+
+USER="$(id -un)" || { log_error "Failed to get user name"; exit 1; }
+export USER
+
+LOCK_DIR="/tmp/cu_workflows_locks_${USER}"
+[[ -d "${LOCK_DIR}" ]] || mkdir -p "${LOCK_DIR}" || exit
 
 function lock_workflow() {
   local name="$1"
@@ -29,12 +32,10 @@ function unlock_workflow() {
 
 function workflow_pop() {
   local name="$1"
-  lock_workflow "$name" || return 1
-  scheduled_at="$(_cu.persistent_kv get _cu_workflows_scheduled "$name" 2>/dev/null)" || { unlock_workflow; return 1; }
-  [[ ${scheduled_at%.*} -le $(date +%s) ]] || { unlock_workflow; return 1; }
+  scheduled_at="$(_cu.persistent_kv get _cu_workflows_scheduled "$name" 2>/dev/null)" || return 1
+  [[ ${scheduled_at%.*} -le $(date +%s) ]] || return 1
   local scheduled_at="$(date +%s.%N -d "+1 day")"
   printf '%s' "$scheduled_at" | _cu.persistent_kv set_overwrite _cu_workflows_scheduled "$name"
-  unlock_workflow
   return 0
 }
 
@@ -81,11 +82,13 @@ IFS=$'\n' sorted_wf_scheduled=($(printf "%s\n" "${wf_scheduled[@]}" | sort -t: -
 
 for wf_schedule in "${sorted_wf_scheduled[@]}"; do
   wf_name="${wf_schedule%:*}"
-  workflow_pop "$wf_name" || continue
+  lock_workflow "$wf_name" || continue
+  workflow_pop "$wf_name" || { unlock_workflow; continue; }
   log_info "Workflow ${wf_name} is ready to run"
   schedule_next_workflow "$wf_name"
   log_info "Workflow ${wf_name} is scheduled for next run in advance"
   log_info "Running workflow ${wf_name}"
   run_workflow "$wf_name"
   log_info "Workflow ${wf_name} is done"
+  unlock_workflow
 done

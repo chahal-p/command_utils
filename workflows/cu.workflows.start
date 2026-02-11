@@ -3,7 +3,7 @@
 parsed_args=$(pflags parse --name "$(basename "${0}")" ---- \
   -s n -l name -t string --regex "^[a-zA-Z0-9_-]+$" -h "Name of the workflow" -- \
   -l at -t number --default 0 --regex "^[0-9]+$" -h "Run the workflow at epoch time in seconds" -- \
-  -l interval -t number --regex "^[0-9]+$" -h "Interval between runs in seconds\n  (Optional) If not given, workflow is not recurring." --default '' -- \
+  -l interval -t number --default '' -h "Interval between runs in seconds\n  (Optional) If not given, workflow is not recurring." -- \
   ---- "$@") || exit
 
 eval set -- "${parsed_args}"
@@ -23,6 +23,13 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+
+
+if [[ -n "${FLAGS_interval}" ]]; then
+  [[ ${FLAGS_interval} =~ ^[0-9]+$ ]] || { printf 'Interval must be a positive integer\n' >&2; exit 1; }
+  [[ ${FLAGS_interval} -lt 60 ]] && { printf 'Interval must be at least 60 seconds\n' >&2; exit 1; }
+fi
 
 _cu.persistent_kv get _cu_workflows "${FLAGS_name}" >/dev/null 2>&1
 code=$?
