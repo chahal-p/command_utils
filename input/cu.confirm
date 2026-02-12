@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 msg="Confirm"
-cu.strings.is_empty "$1" || msg="$1"
+[ -n "$1" ] && msg="$1"
+
 while $true;
 do
   read -p "$msg (yes/no): " || exit
