@@ -2,6 +2,14 @@
 
 set -eo pipefail
 
+CU_SUCCESS=0
+CU_ERROR=1
+CU_ERROR_USAGE=2
+CU_ERROR_NOT_FOUND=40
+CU_ERROR_ALREADY_EXISTS=41
+
+ROOT_DIR="${HOME}/.local/share/command_utils/persistent_kv_data"
+LOCK_DIR="/tmp/cu_persistent_kv_locks_${USER}"
 
 function echo_err() {
   echo "cu.persistent_kv: $@" >&2
@@ -21,17 +29,8 @@ function usage() {
   echo "In set or set_overwrite subcommand, stdin is used as the value"
 }
 
-CU_SUCCESS=0
-CU_ERROR=1
-CU_ERROR_USAGE=2
-CU_ERROR_NOT_FOUND=40
-CU_ERROR_ALREADY_EXISTS=41
-
-ROOT_DIR="${HOME}/.local/share/command_utils_persistent_kv_data"
-LOCK_DIR="/tmp/cu_persistent_kv_locks_${USER}"
-
-[[ -d "${ROOT_DIR}" ]] || mkdir -p "${ROOT_DIR}" || exit
-[[ -d "${LOCK_DIR}" ]] || mkdir -p "${LOCK_DIR}" || exit
+[[ -d "${ROOT_DIR}" ]] || mkdir -m 777 -p "${ROOT_DIR}" || exit
+[[ -d "${LOCK_DIR}" ]] || mkdir -m 777 -p "${LOCK_DIR}" || exit
 
 subcommand="$1"
 namespace="$2"
@@ -76,7 +75,7 @@ if [[ "${subcommand}" == "list" ]]; then
   else
     printf '%s\n' "${items[@]}" | sort -u
   fi
-  exit $?
+  exit
 fi
 ########## END list subcommand ##########
 
@@ -87,9 +86,9 @@ lock_cmd="flock"
 cu.is_macos && lock_cmd="lockf"
 
 key_lock_path="${LOCK_DIR}/${namespace}.${key}.lock"
-touch "${key_lock_path}" || { echo_err "Failed to create lock file"; exit $CU_ERROR; }
+(umask 000 && touch "${key_lock_path}") || { echo_err "Failed to create lock file"; exit $CU_ERROR; }
 
-exec 200>"${key_lock_path}"
+exec 200<"${key_lock_path}"
 $lock_cmd 200
 
 # BEGIN Critical section
@@ -97,8 +96,8 @@ $lock_cmd 200
 ########## BEGIN get subcommand ##########
 if [[ "${subcommand}" == "get" ]]; then
   [ -f "${key_file}" ] || { echo_err "Key ${key} not found"; exit $CU_ERROR_NOT_FOUND; }
-  cat "${key_file}"
-  exit $?
+  cat "${key_file}" || { echo_err "Failed to get value for key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
+  exit
 fi
 ########## END get subcommand ##########
 
@@ -106,20 +105,23 @@ fi
 if [[ "${subcommand}" == "set" ]]; then
   [ -f "${key_file}" ] && { echo_err "Key ${key} in namespace ${namespace} already exists"; exit $CU_ERROR_ALREADY_EXISTS; }
   cat - > "${key_file}" || { echo_err "Failed to set value for key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
-  exit $?
+  chmod 640 "${key_file}"
+  exit
 fi
 ########## END set subcommand ##########
 
 ########## BEGIN set_overwrite subcommand ##########
 if [[ "${subcommand}" == "set_overwrite" ]]; then
   cat - > "${key_file}" || { echo_err "Failed to set value for key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
-  exit $?
+  chmod 640 "${key_file}"
+  exit
 fi
 ########## END set_overwrite subcommand ##########
 
 ########## BEGIN delete subcommand ##########
 if [[ "${subcommand}" == "delete" ]]; then
   rm "${key_file}" > /dev/null 2>&1 || { echo_err "Failed to delete key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
+  exit
 fi
 ########## END delete subcommand ##########
 

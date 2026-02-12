@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+
+parsed_args=$(pflags parse --name "$(basename "${0}")" ---- \
+  -l storage_path -t string -h "Storage path for the persistent kv,\n a new directory (persistent_kv_data)\n will be created inside provided path" ---- "$@") || exit
+
+eval set -- "${parsed_args[@]}"
+
+while [[ $# -gt 0 ]]; do
+  [[ "$1" == "--" ]] && { shift; break; }
+  case $1 in
+    --help)
+      printf '%s' "$2"
+      exit 0
+      ;;
+    *)
+      arg_name="${1#-}"
+      arg_name="${arg_name#-}"
+      eval "FLAGS_${arg_name}='${2//\'/\'\\\'\'}'"
+      shift 2
+      ;;
+  esac
+done
+
+[ -z "${FLAGS_storage_path}" ] && { echo "Storage path cannot be empty" >&2; exit 1; }
+
+line_pat="$(cat $(which _cu.persistent_kv) | grep -n '^ROOT_DIR=\"')"
+line_num="${line_pat%:ROOT_DIR=\"*}"
+
+args=( -i )
+cu.is_macos && args+=( '' )
+
+path="$(realpath "${FLAGS_storage_path}")" || exit
+path="${path%/}/"
+storage_dir="${path}persistent_kv_data"
+
+sed "${args[@]}" "${line_num}c\\ROOT_DIR=\"${storage_dir}\"" $(which _cu.persistent_kv) || exit
+
+mkdir -m 777 -p "${storage_dir}"

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 WORKER_ID="$$"
+[[ -n "${1}" ]] && WORKER_ID="${WORKER_ID}-${1}"
 
 [[ ":$PATH:" == *":/usr/local/bin:"* ]] || export PATH="/usr/local/bin:$PATH"
 [[ ":$PATH:" == *":$HOME/.local/bin:"* ]] || export PATH="$HOME/.local/bin:$PATH"
@@ -17,17 +18,18 @@ USER="$(id -un)" || { log_error "Failed to get user name"; exit 1; }
 export USER
 
 LOCK_DIR="/tmp/cu_workflows_locks_${USER}"
-[[ -d "${LOCK_DIR}" ]] || mkdir -p "${LOCK_DIR}" || exit
+[[ -d "${LOCK_DIR}" ]] || mkdir -m 777 -p "${LOCK_DIR}" || exit
 
 function lock_workflow() {
   local name="$1"
   local lock_file="${LOCK_DIR}/${name}.lock"
-  exec 200>"${lock_file}"
+  (umask 000 && touch "${lock_file}") || { log_error "Failed to create lock file for workflow ${name}"; exit 1; }
+  exec 200<"${lock_file}"
   cu.lock --fd 200 --timeout 0
 }
 
 function unlock_workflow() {
-  exec 200>&-
+  exec 200<&-
 }
 
 function workflow_pop() {
