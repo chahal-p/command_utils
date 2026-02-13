@@ -8,14 +8,14 @@ CU_ERROR_USAGE=2
 CU_ERROR_NOT_FOUND=40
 CU_ERROR_ALREADY_EXISTS=41
 
+USER="$(id -un)" || { echo_err "Failed to get user name"; exit 1; }
+
 ROOT_DIR="${HOME}/.local/share/command_utils/persistent_kv_data"
 LOCK_DIR="/tmp/cu_persistent_kv_locks_${USER}"
 
 function echo_err() {
   echo "cu.persistent_kv: $@" >&2
 }
-
-USER="$(id -un)" || { echo_err "Failed to get user name"; exit 1; }
 
 function usage() {
   echo "Usage: $(basename "${0}") <subcommand> <namespace> <key>"
