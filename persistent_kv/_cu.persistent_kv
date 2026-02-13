@@ -66,7 +66,6 @@ if [[ "${subcommand}" == "list" ]]; then
   [ -n "$namespace" ] && ns_filter="^${namespace}\."
   for x in $(ls -1 --color=never "${ROOT_DIR}" | grep "$ns_filter"); do
     [ -r "${ROOT_DIR%/}/${x}" ] || continue
-    x="$(basename "${x}")"
     IFS='.' read -r n k <<< "${x}"
     if [[ -z "${namespace}" ]]; then
       items+=("${n}")
