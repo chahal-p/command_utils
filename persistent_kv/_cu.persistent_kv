@@ -113,7 +113,6 @@ fi
 ########## BEGIN set_overwrite subcommand ##########
 if [[ "${subcommand}" == "set_overwrite" ]]; then
   cat - > "${key_file}" || { echo_err "Failed to set value for key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
-  chmod 640 "${key_file}"
   exit
 fi
 ########## END set_overwrite subcommand ##########
