@@ -62,7 +62,9 @@ fi
 if [[ "${subcommand}" == "list" ]]; then
   ls "${ROOT_DIR}" > /dev/null 2>&1 || { echo_err "Failed to list directory"; exit $CU_ERROR; }
   items=()
-  for x in $(ls -1 --color=never "${ROOT_DIR}" || { echo_err "Failed to list directory"; exit $CU_ERROR; }); do
+  ns_filter=''
+  [ -n "$namespace" ] && ns_filter="^${namespace}\."
+  for x in $(ls -1 --color=never "${ROOT_DIR}" | grep "$ns_filter"); do
     [ -r "${ROOT_DIR%/}/${x}" ] || continue
     x="$(basename "${x}")"
     IFS='.' read -r n k <<< "${x}"
