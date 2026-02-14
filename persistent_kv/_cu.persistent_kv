@@ -122,6 +122,7 @@ fi
 
 ########## BEGIN delete subcommand ##########
 if [[ "${subcommand}" == "delete" ]]; then
+  [ -f "${key_file}" ] || { echo_err "Key ${key} not found"; exit $CU_ERROR_NOT_FOUND; }
   rm "${key_file}" > /dev/null 2>&1 || { echo_err "Failed to delete key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
   exit
 fi
