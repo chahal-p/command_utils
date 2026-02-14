@@ -34,10 +34,8 @@ function unlock_workflow() {
 
 function workflow_pop() {
   local name="$1"
-  scheduled_at="$(_cu.persistent_kv get _cu_workflows_scheduled "$name" 2>/dev/null)" || return 1
+  local scheduled_at="$(_cu.persistent_kv get _cu_workflows_scheduled "$name" 2>/dev/null)" || return 1
   [[ ${scheduled_at%.*} -le $(date +%s) ]] || return 1
-  local scheduled_at="$(date +%s.%N -d "+1 day")"
-  printf '%s' "$scheduled_at" | _cu.persistent_kv set_overwrite _cu_workflows_scheduled "$name"
   return 0
 }
 
@@ -45,8 +43,14 @@ function schedule_next_workflow() {
   local name="$1"
   local interval="$(_cu.persistent_kv get _cu_workflows_intervals "${name}" 2>/dev/null)"
   local code=$?
-  [ $code -eq 40 ] && { _cu.persistent_kv delete _cu_workflows_scheduled "$name" 2>/dev/null; return $code; }
-  [ $code -ne 0 ] && { log_error "Failed to get workflow interval for ${name}"; return $code; }
+  if [ $code -eq 40 ]; then
+    _cu.persistent_kv delete _cu_workflows_scheduled "$name" 2>/dev/null
+    return $code
+  fi
+  if [ $code -ne 0 ]; then
+    log_error "Failed to get workflow interval for ${name}"
+    return $code
+  fi
   local scheduled_at="$(date +%s.%N -d "+${interval} seconds")"
   printf '%s' "$scheduled_at" | _cu.persistent_kv set_overwrite _cu_workflows_scheduled "$name"
 }
@@ -86,11 +90,9 @@ for wf_schedule in "${sorted_wf_scheduled[@]}"; do
   wf_name="${wf_schedule%:*}"
   lock_workflow "$wf_name" || continue
   workflow_pop "$wf_name" || { unlock_workflow; continue; }
-  log_info "Workflow ${wf_name} is ready to run"
-  schedule_next_workflow "$wf_name"
-  log_info "Workflow ${wf_name} is scheduled for next run in advance"
   log_info "Running workflow ${wf_name}"
   run_workflow "$wf_name"
   log_info "Workflow ${wf_name} is done"
+  schedule_next_workflow "$wf_name" && log_info "Workflow ${wf_name} is scheduled for next run"
   unlock_workflow
 done
