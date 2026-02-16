@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+
+function usage() {
+  cat << EOF
+Usage: $(basename "$0") -n  -k  -o  -g  [-h]
+
+Options:
+  -n, --namespace   Namespace
+  -k, --key         Key
+  -o, --owner       Owner
+  -g, --group       Group
+  -h, --help        Show this help message and exit
+EOF
+
+}
+
+while [[ $# -gt 0 ]]; do
+  arg="$1"
+  shift
+  val=""
+  value_found=0
+  if [[ $# -gt 0 ]] && [[ ! "$1" == -* ]]; then
+    val="$1"
+    value_found=1
+  fi
+  case "$arg" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    -n|--namespace)
+      [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
+      shift || exit 1
+      FLAGS_namespace="$val"
+      ;;
+    -k|--key)
+      [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
+      shift || exit 1
+      FLAGS_key="$val"
+      ;;
+    -o|--owner)
+      [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
+      shift || exit 1
+      FLAGS_owner="$val"
+      ;;
+    -g|--group)
+      [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
+      shift || exit 1
+      FLAGS_group="$val"
+      ;;
+    --namespace=*)
+      val="${arg#--namespace=}"
+      FLAGS_namespace="$val"
+      ;;
+    -n=*)
+      val="${arg#-n=}"
+      FLAGS_namespace="$val"
+      ;;
+    --key=*)
+      val="${arg#--key=}"
+      FLAGS_key="$val"
+      ;;
+    -k=*)
+      val="${arg#-k=}"
+      FLAGS_key="$val"
+      ;;
+    --owner=*)
+      val="${arg#--owner=}"
+      FLAGS_owner="$val"
+      ;;
+    -o=*)
+      val="${arg#-o=}"
+      FLAGS_owner="$val"
+      ;;
+    --group=*)
+      val="${arg#--group=}"
+      FLAGS_group="$val"
+      ;;
+    -g=*)
+      val="${arg#-g=}"
+      FLAGS_group="$val"
+      ;;
+    *)
+      echo "Unrecognized arguments: $arg" >&2
+      exit 2
+      ;;
+  esac
+done
+
+_cu.persistent_kv chown "${FLAGS_namespace}" "${FLAGS_key}" "" "${FLAGS_owner}:${FLAGS_group}"

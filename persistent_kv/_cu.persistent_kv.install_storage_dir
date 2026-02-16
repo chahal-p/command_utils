@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+installer="$1"
+installation_path="$2"
+storage_path="$3"
+
+
+path="$(realpath "${storage_path}")" || exit
+path="${path%/}/"
+storage_dir="${path}persistent_kv_data"
+
+if [[ ! -d "${storage_dir}" ]]; then
+  mkdir -m 777 "${storage_dir}" || exit
+else
+  chmod 777 "${storage_dir}" || exit
+fi
+
+
+cat << EOF | bash "${installer}" --name "cu.persistent_kv.storage_dir" --installation_path "${installation_path}" --content -
+#!/usr/bin/env bash
+printf '%s' '${storage_dir}'
+EOF

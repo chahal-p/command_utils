@@ -24,16 +24,6 @@ done
 
 [ -z "${FLAGS_storage_path}" ] && { echo "Storage path cannot be empty" >&2; exit 1; }
 
-line_pat="$(cat $(which _cu.persistent_kv) | grep -n '^ROOT_DIR=\"')"
-line_num="${line_pat%:ROOT_DIR=\"*}"
+installation_path="$(dirname "$(which _cu.persistent_kv)")" || { echo "Could not identify installation path." >&2; exit 1; }
 
-args=( -i )
-cu.is_macos && args+=( '' )
-
-path="$(realpath "${FLAGS_storage_path}")" || exit
-path="${path%/}/"
-storage_dir="${path}persistent_kv_data"
-
-sed "${args[@]}" "${line_num}c\\ROOT_DIR=\"${storage_dir}\"" $(which _cu.persistent_kv) || exit
-
-mkdir -m 777 -p "${storage_dir}"
+_cu.persistent_kv.install_storage_dir cu.install "${installation_path}"  "${FLAGS_storage_path}"

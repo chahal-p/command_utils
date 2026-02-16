@@ -8,11 +8,6 @@ CU_ERROR_USAGE=2
 CU_ERROR_NOT_FOUND=40
 CU_ERROR_ALREADY_EXISTS=41
 
-USER="$(id -un)" || { echo_err "Failed to get user name"; exit 1; }
-
-ROOT_DIR="${HOME}/.local/share/command_utils/persistent_kv_data"
-LOCK_DIR="/tmp/cu_persistent_kv_locks_${USER}"
-
 function echo_err() {
   echo "cu.persistent_kv: $@" >&2
 }
@@ -25,37 +20,29 @@ function usage() {
   echo "  set"
   echo "  set_overwrite"
   echo "  delete"
+  echo "  chmod"
+  echo "  chown"
   echo ""
   echo "In set or set_overwrite subcommand, stdin is used as the value"
 }
 
-[[ -d "${ROOT_DIR}" ]] || mkdir -m 777 -p "${ROOT_DIR}" || exit
+ROOT_DIR="$(cu.persistent_kv.storage_dir 2>/dev/null)" || { echo_err "Failed to get storage directory"; exit $CU_ERROR; }
+LOCK_DIR="/tmp/cu_persistent_kv_locks"
+
+[[ -d "${ROOT_DIR}" ]] || { echo_err "Storage directory ${ROOT_DIR} does not exist"; exit $CU_ERROR; }
 [[ -d "${LOCK_DIR}" ]] || mkdir -m 777 -p "${LOCK_DIR}" || exit
 
 subcommand="$1"
 namespace="$2"
 key="$3"
-
-if [[ "${subcommand}" =~ ^get|set|delete$ ]]; then
-  if [[ -z "${namespace}" || -z "${key}" ]]; then
-    echo_err "Namespace and key are required"
-    exit $CU_ERROR_USAGE 
-  fi
-elif [[ "${subcommand}" != "list" ]]; then
-  echo_err "Unknown subcommand: ${subcommand}"
-  usage
-  exit $CU_ERROR_USAGE
-fi
+mode="$4"
+owner_group="$5"
 
 if [[ -n "${namespace}" ]]; then
   [[ "${#namespace}" -le 64 ]] || { echo_err "Invalid namespace: namespace should be at most 64 characters long"; exit $CU_ERROR_USAGE; }
   [[ "${namespace}" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo_err "Invalid namespace: namespace should match regex ^[a-zA-Z0-9_-]+$"; exit $CU_ERROR_USAGE; }
 fi
 
-if [[ -n "${key}" ]]; then
-  [[ "${#key}" -le 64 ]] || { echo_err "Invalid key: key should be at most 64 characters long"; exit $CU_ERROR_USAGE; }
-  [[ "${key}" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo_err "Invalid key: key should match regex ^[a-zA-Z0-9_-]+$"; exit $CU_ERROR_USAGE; }
-fi
 
 ########## BEGIN list subcommand ##########
 
@@ -82,23 +69,33 @@ if [[ "${subcommand}" == "list" ]]; then
 fi
 ########## END list subcommand ##########
 
-key_file="${ROOT_DIR}/${namespace}.${key}"
+if [[ -z "${namespace}" || -z "${key}" ]]; then
+  echo_err "Namespace and key are required"
+  exit $CU_ERROR_USAGE 
+fi
 
-# Acquire lock key path
-lock_cmd="flock"
-cu.is_macos && lock_cmd="lockf"
+if [[ -n "${key}" ]]; then
+  [[ "${#key}" -le 64 ]] || { echo_err "Invalid key: key should be at most 64 characters long"; exit $CU_ERROR_USAGE; }
+  [[ "${key}" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo_err "Invalid key: key should match regex ^[a-zA-Z0-9_-]+$"; exit $CU_ERROR_USAGE; }
+fi
+
+key_file="${ROOT_DIR}/${namespace}.${key}"
 
 key_lock_path="${LOCK_DIR}/${namespace}.${key}.lock"
 (umask 000 && touch "${key_lock_path}") || { echo_err "Failed to create lock file"; exit $CU_ERROR; }
 
+lock_cmd="flock"
+cu.is_macos && lock_cmd="lockf"
+
+# BEGIN Critical section
+# Acquire lock
 exec 200<"${key_lock_path}"
 $lock_cmd 200
 
-# BEGIN Critical section
-
 ########## BEGIN get subcommand ##########
 if [[ "${subcommand}" == "get" ]]; then
-  [ -f "${key_file}" ] || { echo_err "Key ${key} not found"; exit $CU_ERROR_NOT_FOUND; }
+  [ -f "${key_file}" ] || { echo_err "Key ${key} in namespace ${namespace} not found"; exit $CU_ERROR_NOT_FOUND; }
+  [ -r "${key_file}" ] || { echo_err "Permission denied: Key ${key} in namespace ${namespace} is not readable"; exit $CU_ERROR; }
   cat "${key_file}" || { echo_err "Failed to get value for key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
   exit
 fi
@@ -122,10 +119,30 @@ fi
 
 ########## BEGIN delete subcommand ##########
 if [[ "${subcommand}" == "delete" ]]; then
-  [ -f "${key_file}" ] || { echo_err "Key ${key} not found"; exit $CU_ERROR_NOT_FOUND; }
+  [ -f "${key_file}" ] || { echo_err "Key ${key} in namespace ${namespace} not found"; exit $CU_ERROR_NOT_FOUND; }
   rm "${key_file}" > /dev/null 2>&1 || { echo_err "Failed to delete key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
   exit
 fi
 ########## END delete subcommand ##########
+
+########## BEGIN chmod subcommand ##########
+if [[ "${subcommand}" == "chmod" ]]; then
+  [ -f "${key_file}" ] || { echo_err "Key ${key} in namespace ${namespace} not found"; exit $CU_ERROR_NOT_FOUND; }
+  chmod "${mode}" "${key_file}" || { echo_err "Failed to set mode for key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
+  exit
+fi
+########## END chmod subcommand ##########
+
+########## BEGIN chown subcommand ##########
+if [[ "${subcommand}" == "chown" ]]; then
+  [ -f "${key_file}" ] || { echo_err "Key ${key} in namespace ${namespace} not found"; exit $CU_ERROR_NOT_FOUND; }
+  chown "${owner_group}" "${key_file}" || { echo_err "Failed to set owner/group for key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
+  exit
+fi
+########## END chown subcommand ##########
+
+echo_err "Unknown subcommand: ${subcommand}"
+usage
+exit $CU_ERROR_USAGE
 
 # END Critical section
