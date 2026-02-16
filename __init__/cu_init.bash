@@ -42,4 +42,4 @@ function cu.python.venv-activate() {
   source ~/.python-venv/bin/activate
 }
 
-source <(cu.persistent_source.print_sourceable --shell_type bash)
+source <(cu.persistent_source.print_sourceable --sh bash)

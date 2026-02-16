@@ -102,20 +102,16 @@ fi
 ########## END get subcommand ##########
 
 ########## BEGIN set subcommand ##########
-if [[ "${subcommand}" == "set" ]]; then
-  [ -f "${key_file}" ] && { echo_err "Key ${key} in namespace ${namespace} already exists"; exit $CU_ERROR_ALREADY_EXISTS; }
+if [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
+  if [ -f "${key_file}" ]; then
+    [ "${subcommand}" == "set" ] && { echo_err "Key ${key} in namespace ${namespace} already exists"; exit $CU_ERROR_ALREADY_EXISTS; }
+  else
+    (umask 137 && touch "${key_file}") || { echo_err "Failed to create key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
+  fi
   cat - > "${key_file}" || { echo_err "Failed to set value for key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
-  chmod 640 "${key_file}"
   exit
 fi
 ########## END set subcommand ##########
-
-########## BEGIN set_overwrite subcommand ##########
-if [[ "${subcommand}" == "set_overwrite" ]]; then
-  cat - > "${key_file}" || { echo_err "Failed to set value for key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
-  exit
-fi
-########## END set_overwrite subcommand ##########
 
 ########## BEGIN delete subcommand ##########
 if [[ "${subcommand}" == "delete" ]]; then

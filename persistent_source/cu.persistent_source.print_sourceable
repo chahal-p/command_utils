@@ -2,10 +2,10 @@
 
 function usage {
   cat <<EOF
-Usage: $(basename "$0") --shell_type  [-h]
+Usage: $(basename "$0") --sh  [-h]
 
 Options:
-  --shell_type 
+  --sh           Shell type (bash or zsh)
   -h, --help     Show this help message and exit
 EOF
 }
@@ -24,13 +24,13 @@ while [[ $# -gt 0 ]]; do
       usage
       exit 0
       ;;
-    --shell_type)
+    --sh)
       [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
       [ "$value_found" -eq 1 ] && shift || exit 1
       FLAGS_shell_type+=("$val")
       ;;
-    --shell_type=*)
-      v="${arg#--shell_type=}"
+    --sh=*)
+      v="${arg#--sh=}"
       FLAGS_shell_type+=("$v")
       ;;
     *)
@@ -40,13 +40,15 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ "$FLAGS_shell_type" =~ ^bash$|^zsh$ ]] || { echo "Invalid value for --shell_type. Allowed values are bash and zsh" >&2; exit 2; }
+[[ "$FLAGS_shell_type" =~ ^bash$|^zsh$ ]] || { echo "Invalid value for --sh. Allowed values are bash and zsh" >&2; exit 2; }
 
 index_names=()
 
-readarray -t names < <(_cu.persistent_kv list _cu_persistent_source_data_${FLAGS_shell_type} 2>/dev/null)
+user=$(whoami)
+
+readarray -t names < <(_cu.persistent_kv list _cu_persistent_source_data_${FLAGS_shell_type}_${user} 2>/dev/null)
 for name in "${names[@]}"; do
-  index="$(_cu.persistent_kv get _cu_persistent_source_index_${FLAGS_shell_type} "$name")"
+  index="$(_cu.persistent_kv get _cu_persistent_source_index_${FLAGS_shell_type}_${user} "$name")"
   index_names+=("$FLAGS_shell_type:$index:$name")
 done
 
@@ -55,6 +57,6 @@ IFS=$'\n' sorted_array=($(printf "%s\n" "${index_names[@]}" | sort -t: -k1,1 -k2
 for index_name in "${sorted_array[@]}"; do
   IFS=':' read -r sh index name <<< "$index_name"
   echo "# ${sh} script from: $name"
-  _cu.persistent_kv get _cu_persistent_source_data_${FLAGS_shell_type} "$name"
+  _cu.persistent_kv get _cu_persistent_source_data_${FLAGS_shell_type}_${user} "$name"
   echo ""
 done

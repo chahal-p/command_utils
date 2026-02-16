@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 parsed=$(pflags parse --name "$(basename "$0")" ---- \
-  -l shell_type -t string --allowed bash --allowed zsh --default bash --default zsh ---- "${@}") || exit
+  -l sh -t string --allowed bash --allowed zsh --default bash --default zsh -h "Shell type (bash or zsh)" ---- "${@}") || exit
 
 eval set -- "$parsed"
 
@@ -13,7 +13,7 @@ while [[ $# -gt 0 ]]; do
       printf '%s' "$2"
       exit 0
       ;;
-    --shell_type)
+    --sh)
       shell_type+=("$2")
       shift 2
       ;;
@@ -27,10 +27,12 @@ max_index_str_size=5 # for Index header
 
 index_names=()
 
+user=$(whoami)
+
 for sht in "${shell_type[@]}"; do
-  readarray -t names < <(_cu.persistent_kv list _cu_persistent_source_data_${sht} 2>/dev/null)
+  readarray -t names < <(_cu.persistent_kv list _cu_persistent_source_data_${sht}_${user} 2>/dev/null)
   for name in "${names[@]}"; do
-    index="$(_cu.persistent_kv get _cu_persistent_source_index_${sht} "$name")"
+    index="$(_cu.persistent_kv get _cu_persistent_source_index_${sht}_${user} "$name")"
     size="${#index}"
     [[ "$index" == 2147483647 ]] && size=1
     max_index_str_size="$((${size} > max_index_str_size ? ${size} : max_index_str_size))"

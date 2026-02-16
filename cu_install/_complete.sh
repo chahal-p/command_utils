@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 function _complete_cu.install() {
   local cur="${COMP_WORDS[COMP_CWORD]}"
-  COMPREPLY=( $(compgen -W "--name --content --file --installation_path --quiet" -- "$cur") )
+  COMPREPLY=( $(compgen -f -W "--name --content --file --installation_path --quiet" -- "$cur") )
 }
 complete -F _complete_cu.install cu.install
 

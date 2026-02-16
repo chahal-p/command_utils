@@ -34,4 +34,4 @@ function cu.python.venv-activate() {
   source ~/.python-venv/bin/activate
 }
 
-source <(cu.persistent_source.print_sourceable --shell_type zsh)
+source <(cu.persistent_source.print_sourceable --sh zsh)
