@@ -31,20 +31,22 @@ if [[ -n "${FLAGS_interval}" ]]; then
   [[ ${FLAGS_interval} -lt 60 ]] && { printf 'Interval must be at least 60 seconds\n' >&2; exit 1; }
 fi
 
-_cu.persistent_kv get _cu_workflows "${FLAGS_name}" >/dev/null 2>&1
+user="$(whoami)"
+
+_cu.persistent_kv get _cu_workflows_${user} "${FLAGS_name}" >/dev/null 2>&1
 code=$?
 [ $code -eq 0 ] || {
   [ $code -eq 40 ] && { echo "Workflow ${FLAGS_name} not found" >&2; }
   exit $code
 }
 
-printf '%s' "${FLAGS_at}" | _cu.persistent_kv set _cu_workflows_scheduled "${FLAGS_name}" 2>/dev/null
+printf '%s' "${FLAGS_at}" | _cu.persistent_kv set _cu_workflows_scheduled_${user} "${FLAGS_name}" 2>/dev/null
 code=$?
 [ $code -eq 41 ] && { printf 'Workflow %s is already scheduled\n' "${FLAGS_name}" >&2; exit 0; }
 [[ $code -eq 0 ]] || { printf 'Failed to set scheduled time for workflow %s\n' "${FLAGS_name}" >&2; exit $code; }
 
 if [ -n "${FLAGS_interval}" ]; then
-  printf '%s' "${FLAGS_interval}" | _cu.persistent_kv set_overwrite _cu_workflows_intervals "${FLAGS_name}"
+  printf '%s' "${FLAGS_interval}" | _cu.persistent_kv set_overwrite _cu_workflows_intervals_${user} "${FLAGS_name}"
   code=$?
   [[ $code -eq 0 ]] || { printf 'Failed to set interval for workflow %s\n' "${FLAGS_name}" >&2; exit $code; }
 fi

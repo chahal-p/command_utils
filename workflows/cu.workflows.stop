@@ -21,10 +21,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-_cu.persistent_kv delete _cu_workflows_scheduled "${name}" 2>/dev/null
+user="$(whoami)"
+
+_cu.persistent_kv delete _cu_workflows_scheduled_${user} "${name}" 2>/dev/null
 code=$?
 [[ $code -eq 0 ]] || [[ $code -eq 40 ]] || { printf 'Failed to delete scheduled workflow %s\n' "${name}" >&2; exit $code; }
 
-_cu.persistent_kv delete _cu_workflows_intervals "${name}" 2>/dev/null
+_cu.persistent_kv delete _cu_workflows_intervals_${user} "${name}" 2>/dev/null
 code=$?
 [[ $code -eq 0 ]] || [[ $code -eq 40 ]] || { printf 'Failed to delete interval for workflow %s\n' "${name}" >&2; exit $code; }

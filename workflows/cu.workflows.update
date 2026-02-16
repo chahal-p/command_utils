@@ -41,5 +41,7 @@ done
 
 [ -z "${workflow_command_encoded}" ] && { echo "No workflow command provided" >&2; exit 2; }
 
-printf '%s' "${workflow_command_encoded}" | _cu.persistent_kv set_overwrite _cu_workflows "${name}"
+user="$(whoami)"
+
+printf '%s' "${workflow_command_encoded}" | _cu.persistent_kv set_overwrite _cu_workflows_${user} "${name}"
 

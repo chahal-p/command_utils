@@ -6,6 +6,11 @@ WORKER_ID="$$"
 [[ ":$PATH:" == *":/usr/local/bin:"* ]] || export PATH="/usr/local/bin:$PATH"
 [[ ":$PATH:" == *":$HOME/.local/bin:"* ]] || export PATH="$HOME/.local/bin:$PATH"
 
+USER="$(whoami)"
+[[ -n "${USER}" ]] || { log_error "Failed to get user name"; exit 1; }
+
+export USER
+
 function log_info() {
   echo "[INFO] [WORKER ${WORKER_ID}] $(date +%Y-%m-%dT%H:%M:%S%z) $1"
 }
@@ -13,9 +18,6 @@ function log_info() {
 function log_error() {
   echo "[ERROR] [WORKER ${WORKER_ID}] $(date +%Y-%m-%dT%H:%M:%S%z) $1" >&2
 }
-
-USER="$(id -un)" || { log_error "Failed to get user name"; exit 1; }
-export USER
 
 LOCK_DIR="/tmp/cu_workflows_locks_${USER}"
 [[ -d "${LOCK_DIR}" ]] || mkdir -m 777 -p "${LOCK_DIR}" || exit
@@ -37,7 +39,7 @@ function workflow_pop() {
   local name
   local scheduled_at
   name="$1"
-  scheduled_at="$(_cu.persistent_kv get _cu_workflows_scheduled "$name" 2>/dev/null)" || return 1
+  scheduled_at="$(_cu.persistent_kv get _cu_workflows_scheduled_${USER} "$name" 2>/dev/null)" || return 1
   [[ ${scheduled_at%.*} -le $(date +%s) ]] || return 1
   return 0
 }
@@ -48,10 +50,10 @@ function schedule_next_workflow() {
   local code
   local scheduled_at
   name="$1"
-  interval="$(_cu.persistent_kv get _cu_workflows_intervals "${name}" 2>/dev/null)"
+  interval="$(_cu.persistent_kv get _cu_workflows_intervals_${USER} "${name}" 2>/dev/null)"
   code=$?
   if [ $code -eq 40 ]; then
-    _cu.persistent_kv delete _cu_workflows_scheduled "$name" 2>/dev/null
+    _cu.persistent_kv delete _cu_workflows_scheduled_${USER} "$name" 2>/dev/null
     return $code
   fi
   if [ $code -ne 0 ]; then
@@ -59,7 +61,7 @@ function schedule_next_workflow() {
     return $code
   fi
   scheduled_at="$(date +%s.%N -d "+${interval} seconds")"
-  printf '%s' "$scheduled_at" | _cu.persistent_kv set_overwrite _cu_workflows_scheduled "$name"
+  printf '%s' "$scheduled_at" | _cu.persistent_kv set_overwrite _cu_workflows_scheduled_${USER} "$name"
 }
 
 function run_workflow() {
@@ -68,7 +70,7 @@ function run_workflow() {
   local code
   local wf_cmd
   name="$1"
-  wf_encoded_cmd="$(_cu.persistent_kv get _cu_workflows "${name}" 2>/dev/null)"
+  wf_encoded_cmd="$(_cu.persistent_kv get _cu_workflows_${USER} "${name}" 2>/dev/null)"
   code=$?
   [ $code -eq 0 ] || { [ $code -eq 40 ] && { log_error "Workflow ${name} not found"; exit $code; } || exit $code; }
 
@@ -86,10 +88,10 @@ log_info "Checking for workflows ready to run"
 
 wf_scheduled=()
 
-readarray -t wfs < <(_cu.persistent_kv list _cu_workflows_scheduled 2>/dev/null)
+readarray -t wfs < <(_cu.persistent_kv list _cu_workflows_scheduled_${USER} 2>/dev/null)
 
 for wf_name in "${wfs[@]}"; do
-  wf_at=$(_cu.persistent_kv get _cu_workflows_scheduled "${wf_name}" 2>/dev/null)
+  wf_at=$(_cu.persistent_kv get _cu_workflows_scheduled_${USER} "${wf_name}" 2>/dev/null)
   code=$?
   [ $code -eq 0 ] || { [ $code -eq 40 ] && continue || { log_error "Failed to get workflow scheduled time for ${wf_name}"; exit $code; } }
   [[ ${wf_at%.*} -le $(date +%s) ]] && wf_scheduled+=("${wf_name}:${wf_at}")

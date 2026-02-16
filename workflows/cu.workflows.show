@@ -21,7 +21,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-wf_encoded_cmd="$(_cu.persistent_kv get _cu_workflows "${FLAGS_name}" 2>/dev/null)"
+user="$(whoami)"
+
+wf_encoded_cmd="$(_cu.persistent_kv get _cu_workflows_${user} "${FLAGS_name}" 2>/dev/null)"
 code=$?
 [ $code -eq 0 ] || { [ $code -eq 40 ] && { echo "Workflow ${FLAGS_name} not found" >&2; exit $code; } || exit $code; }
 
