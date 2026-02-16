@@ -85,7 +85,7 @@ install=(
 
 echo '#!/usr/bin/env bash' > "/tmp/_cu.completes.bash_${USER}"
 
-function install_persistent_kv_storage_dir() {
+function install_persistent_kv_configs() {
   [ -f "${FLAGS_installation_path%/}/cu.persistent_kv.storage_dir" ] && {
     echo "Persistent KV storage dir already configured, skipping storage dir installation. Use cu.persistent_kv.configure to reconfigure the storage dir."
     return 1
@@ -96,7 +96,7 @@ function install_persistent_kv_storage_dir() {
     storage_path="/usr/local/share/command_utils"
     [ -d /usr/local/share/command_utils ] || mkdir -m 755 /usr/local/share/command_utils
   }
-  bash persistent_kv/_cu.persistent_kv.install_storage_dir "cu_install/cu.install" "$FLAGS_installation_path" "${storage_path}"
+  bash persistent_kv/_cu.persistent_kv.install_configs "cu_install/cu.install" "$FLAGS_installation_path" "${storage_path}"
 }
 
 for x in "${install[@]}"
@@ -108,7 +108,7 @@ do
     bn="$(basename "$p")"
     [[ "$bn" == "_complete.sh" ]] && continue
     bash cu_install/cu.install --installation_path "$FLAGS_installation_path" --file "$p" || exit
-    [[ "$bn" == "_cu.persistent_kv.install_storage_dir" ]] && install_persistent_kv_storage_dir
+    [[ "$bn" == "_cu.persistent_kv.install_configs" ]] && install_persistent_kv_configs
   done
   if [ -f "./$x/_complete.sh" ]
   then

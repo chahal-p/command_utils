@@ -26,4 +26,4 @@ done
 
 installation_path="$(dirname "$(which _cu.persistent_kv)")" || { echo "Could not identify installation path." >&2; exit 1; }
 
-_cu.persistent_kv.install_storage_dir cu.install "${installation_path}"  "${FLAGS_storage_path}"
+_cu.persistent_kv.install_configs cu.install "${installation_path}"  "${FLAGS_storage_path}"

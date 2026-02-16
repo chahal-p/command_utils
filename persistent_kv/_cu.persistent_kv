@@ -26,10 +26,10 @@ function usage() {
   echo "In set or set_overwrite subcommand, stdin is used as the value"
 }
 
-ROOT_DIR="$(cu.persistent_kv.storage_dir 2>/dev/null)" || { echo_err "Failed to get storage directory"; exit $CU_ERROR; }
+source _cu.persistent_kv.configs || { echo_err "Failed to load persistent_kv configs"; exit $CU_ERROR; }
 LOCK_DIR="/tmp/cu_persistent_kv_locks"
 
-[[ -d "${ROOT_DIR}" ]] || { echo_err "Storage directory ${ROOT_DIR} does not exist"; exit $CU_ERROR; }
+[[ -d "${STORAGE_DIR}" ]] || { echo_err "Storage directory ${STORAGE_DIR} does not exist"; exit $CU_ERROR; }
 [[ -d "${LOCK_DIR}" ]] || mkdir -m 777 -p "${LOCK_DIR}" || exit
 
 subcommand="$1"
@@ -47,12 +47,12 @@ fi
 ########## BEGIN list subcommand ##########
 
 if [[ "${subcommand}" == "list" ]]; then
-  ls "${ROOT_DIR}" > /dev/null 2>&1 || { echo_err "Failed to list directory"; exit $CU_ERROR; }
+  ls "${STORAGE_DIR}" > /dev/null 2>&1 || { echo_err "Failed to list directory"; exit $CU_ERROR; }
   items=()
   ns_filter=''
   [ -n "$namespace" ] && ns_filter="^${namespace}\."
-  for x in $(ls -1 --color=never "${ROOT_DIR}" | grep "$ns_filter"); do
-    [ -r "${ROOT_DIR%/}/${x}" ] || continue
+  for x in $(ls -1 --color=never "${STORAGE_DIR}" | grep "$ns_filter"); do
+    [ -r "${STORAGE_DIR%/}/${x}" ] || continue
     IFS='.' read -r n k <<< "${x}"
     if [[ -z "${namespace}" ]]; then
       items+=("${n}")
@@ -79,7 +79,7 @@ if [[ -n "${key}" ]]; then
   [[ "${key}" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo_err "Invalid key: key should match regex ^[a-zA-Z0-9_-]+$"; exit $CU_ERROR_USAGE; }
 fi
 
-key_file="${ROOT_DIR}/${namespace}.${key}"
+key_file="${STORAGE_DIR}/${namespace}.${key}"
 
 key_lock_path="${LOCK_DIR}/${namespace}.${key}.lock"
 (umask 000 && touch "${key_lock_path}") || { echo_err "Failed to create lock file"; exit $CU_ERROR; }

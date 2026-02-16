@@ -15,8 +15,7 @@ else
   chmod 777 "${storage_dir}" || exit
 fi
 
-
-cat << EOF | bash "${installer}" --name "cu.persistent_kv.storage_dir" --installation_path "${installation_path}" --content -
+cat << EOF | bash "${installer}" --name "_cu.persistent_kv.configs" --installation_path "${installation_path}" --content -
 #!/usr/bin/env bash
-printf '%s' '${storage_dir}'
+STORAGE_DIR="${storage_dir}"
 EOF
