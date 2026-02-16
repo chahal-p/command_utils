@@ -86,8 +86,8 @@ install=(
 echo '#!/usr/bin/env bash' > "/tmp/_cu.completes.bash_${USER}"
 
 function install_persistent_kv_configs() {
-  [ -f "${FLAGS_installation_path%/}/cu.persistent_kv.storage_dir" ] && {
-    echo "Persistent KV storage dir already configured, skipping storage dir installation. Use cu.persistent_kv.configure to reconfigure the storage dir."
+  [ -f "${FLAGS_installation_path%/}/_cu.persistent_kv.configs" ] && {
+    echo "Persistent KV already configured, skipping configs installation. Use cu.persistent_kv.configure to reconfigure."
     return 1
   }
   local storage_path="${HOME}/.command_utils"

@@ -22,8 +22,15 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[ -z "${FLAGS_storage_path}" ] && { echo "Storage path cannot be empty" >&2; exit 1; }
+[[ -z "${FLAGS_storage_path}" ]] && { echo "Storage path cannot be empty" >&2; exit 1; }
 
-installation_path="$(dirname "$(which _cu.persistent_kv)")" || { echo "Could not identify installation path." >&2; exit 1; }
+persistent_kv_installation="$(which _cu.persistent_kv)" || { echo "Persistent KV is not installed." >&2; exit 1; }
+installation_path="$(dirname "${persistent_kv_installation}")" || { echo "Could not identify installation path." >&2; exit 1; }
+
+existing_config_installation="$(which _cu.persistent_kv.configs)"
+
+[[ -n "${existing_config_installation}" ]] && {
+  [[ "$(dirname "${existing_config_installation}")" == "${installation_path}" ]] || { echo "There is another persistent KV installation at ${existing_config_installation}. Please remove it before proceeding." >&2; exit 1; }
+}
 
 _cu.persistent_kv.install_configs cu.install "${installation_path}"  "${FLAGS_storage_path}"
