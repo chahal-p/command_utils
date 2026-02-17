@@ -23,7 +23,8 @@ LOCK_DIR="/tmp/cu_workflows_locks_${USER}"
 [[ -d "${LOCK_DIR}" ]] || mkdir -m 777 -p "${LOCK_DIR}" || exit
 
 function lock_workflow() {
-  local name, lock_file
+  local name
+  local lock_file
   name="$1"
   lock_file="${LOCK_DIR}/${name}.lock"
   (umask 000 && touch "${lock_file}") || { log_error "Failed to create lock file for workflow ${name}"; exit 1; }
