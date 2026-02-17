@@ -34,21 +34,26 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+user="$(whoami)"
+namespace="_cu_vars_${user}"
+
+mkdir -p "${HOME}/.local/bin"
+
 for var in ${vars[@]}; do
   cu.install --name "${var}" --installation_path "${HOME}/.local/bin" --content - <<EOF
 #!/usr/bin/env bash
 if [ "\${#@}" -eq 0 ]; then
-  _cu.persistent_kv get _cu_vars "${var}"
+  _cu.persistent_kv get "${namespace}" "${var}"
 else
   if [[ "\$1" == '-' ]]; then
-    _cu.persistent_kv set_overwrite _cu_vars "${var}"
+    _cu.persistent_kv set_overwrite "${namespace}" "${var}"
   else
-    printf "%s" "\$1" | _cu.persistent_kv set_overwrite _cu_vars "${var}"
+    printf "%s" "\$1" | _cu.persistent_kv set_overwrite "${namespace}" "${var}"
   fi
   printf "%s\n" "Value is set in ${var}. Use '${var}' without args to get the value."
 fi
 EOF
-  _cu.persistent_kv get _cu_vars "${var}" > /dev/null 2>&1
-  [ $? -eq 40 ] && echo -n | _cu.persistent_kv set_overwrite _cu_vars "${var}"
+  _cu.persistent_kv get "${namespace}" "${var}" > /dev/null 2>&1
+  [ $? -eq 40 ] && echo -n | _cu.persistent_kv set_overwrite "${namespace}" "${var}"
 done
 exit 0

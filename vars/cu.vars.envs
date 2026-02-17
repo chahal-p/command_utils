@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 
-readarray -t vars < <(_cu.persistent_kv list _cu_vars 2>/dev/null)
+user="$(whoami)"
+namespace="_cu_vars_${user}"
+
+readarray -t vars < <(_cu.persistent_kv list "${namespace}" 2>/dev/null)
 
 for var in "${vars[@]}"; do
   command -v "${var}" &> /dev/null || continue
-  value="$(_cu.persistent_kv get _cu_vars "${var}" 2>/dev/null)"
+  value="$(_cu.persistent_kv get "${namespace}" "${var}" 2>/dev/null)"
   # [ -z "$value" ] || { (echo "${value}" | base64 -d | head -c 10 | file -i - | grep -q "charset=binary") && continue; }
   printf "%s=%s;\n" "${var}" "$(cu.strings.quoted "${value}")"
 done
