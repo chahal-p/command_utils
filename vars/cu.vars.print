@@ -11,7 +11,8 @@ MAX_LEN=80
 READ_LEN=$(( MAX_LEN + 1 ))
 
 for var in "${vars[@]}"; do
-  value="$(_cu.persistent_kv get _cu_vars "${var}" | head -c $READ_LEN)"
+  command -v "${var}" &> /dev/null || continue
+  value="$(_cu.persistent_kv get _cu_vars "${var}" 2>/dev/null | head -c $READ_LEN)"
   # [ -z "$value" ] ||  { (echo "${value}" | base64 -d | file -i - | grep -q "charset=binary") && value="<binary data>"; }
   # [ "$value" == "<binary data>" ] || value="$(echo "${value}" | base64 -d)"
   [[ "${#value}" -gt $MAX_LEN ]] && value="${value:0:$MAX_LEN}...<truncated>..."

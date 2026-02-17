@@ -24,6 +24,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 for var in ${vars[@]}; do
+  _cu.persistent_kv delete _cu_vars "${var}" 2>/dev/null
+  code=$?
+  [[ $code -eq 0 ]] || [[ $code -eq 40 ]] || { printf 'Failed to delete var %s\n' "${var}" >&2; continue; }
+
   cu.uninstall --name "${var}" --installation_path "${HOME}/.local/bin"
-  _cu.persistent_kv delete _cu_vars "${var}"
 done
