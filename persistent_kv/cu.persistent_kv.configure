@@ -2,7 +2,7 @@
 
 
 parsed_args=$(pflags parse --name "$(basename "${0}")" ---- \
-  -l storage_path -t string -h "Storage path for the persistent kv,\n a new directory (persistent_kv_data)\n will be created inside provided path" ---- "$@") || exit
+  -l storage_dir -t string -h "Storage directory path for the persistent kv, it must have 1777 permissions" ---- "$@") || exit
 
 eval set -- "${parsed_args[@]}"
 
@@ -22,7 +22,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -z "${FLAGS_storage_path}" ]] && { echo "Storage path cannot be empty" >&2; exit 1; }
+[[ -z "${FLAGS_storage_dir}" ]] && { echo "Storage directory path cannot be empty" >&2; exit 1; }
 
 persistent_kv_installation="$(which _cu.persistent_kv)" || { echo "Persistent KV is not installed." >&2; exit 1; }
 installation_path="$(dirname "${persistent_kv_installation}")" || { echo "Could not identify installation path." >&2; exit 1; }
@@ -33,4 +33,4 @@ existing_config_installation="$(which _cu.persistent_kv.configs)"
   [[ "$(dirname "${existing_config_installation}")" == "${installation_path}" ]] || { echo "There is another persistent KV installation at ${existing_config_installation}. Please remove it before proceeding." >&2; exit 1; }
 }
 
-_cu.persistent_kv.install_configs cu.install "${installation_path}"  "${FLAGS_storage_path}"
+_cu.persistent_kv.install_configs cu.install "${installation_path}"  "${FLAGS_storage_dir}"

@@ -6,14 +6,13 @@ storage_path="$3"
 
 
 path="$(realpath "${storage_path}")" || exit
-path="${path%/}/"
-storage_dir="${path}persistent_kv_data"
+storage_dir="${path%/}"
 
-if [[ ! -d "${storage_dir}" ]]; then
-  mkdir -m 777 "${storage_dir}" || exit
-else
-  chmod 777 "${storage_dir}" || exit
-fi
+[[ -d "${storage_dir}" ]] || { echo "Storage directory ${storage_dir} does not exist." >&2; exit 1; }
+
+perms="$(ls -ld "${storage_dir}")"
+
+[[ "${perms}" =~ ^drwxrwxrwt ]] || { echo "Storage directory ${storage_dir} has incorrect permissions. Please run 'chmod 1777 ${storage_dir}' to fix this." >&2; exit 1; }
 
 cat << EOF | bash "${installer}" --name "_cu.persistent_kv.configs" --installation_path "${installation_path}" --content -
 #!/usr/bin/env bash

@@ -85,18 +85,28 @@ install=(
 
 echo '#!/usr/bin/env bash' > "/tmp/_cu.completes.bash_${USER}"
 
+# Create command_utils directory
+COMMAND_UTILS_DIR_PATH="${HOME}/.command_utils"
+[[ "$(whoami)" == "root" ]] && {
+  [ -d /usr/local/share ] || mkdir -m 755 -p /usr/local/share || exit
+  COMMAND_UTILS_DIR_PATH="/usr/local/share/command_utils"
+}
+[ -d "${COMMAND_UTILS_DIR_PATH}" ] || mkdir -m 755 "${COMMAND_UTILS_DIR_PATH}" || exit
+################################
+
 function install_persistent_kv_configs() {
   [ -f "${FLAGS_installation_path%/}/_cu.persistent_kv.configs" ] && {
     echo "Persistent KV already configured, skipping configs installation. Use cu.persistent_kv.configure to reconfigure."
     return 1
   }
-  local storage_path="${HOME}/.command_utils"
-  [[ "$(id -un)" == "root" ]] && {
-    [ -d /usr/local/share ] || mkdir -m 755 -p /usr/local/share
-    storage_path="/usr/local/share/command_utils"
-    [ -d /usr/local/share/command_utils ] || mkdir -m 755 /usr/local/share/command_utils
+  [ -d "${COMMAND_UTILS_DIR_PATH}" ] || {
+    echo "Something went wrong, command_utils directory not found."
+    exit 1
   }
-  bash persistent_kv/_cu.persistent_kv.install_configs "cu_install/cu.install" "$FLAGS_installation_path" "${storage_path}"
+
+  local storage_path="${COMMAND_UTILS_DIR_PATH}/persistent_kv_storage"
+  [ -d "${storage_path}" ] || mkdir -m 1777 "${storage_path}" || exit
+  bash persistent_kv/_cu.persistent_kv.install_configs "cu_install/cu.install" "$FLAGS_installation_path" "${storage_path}" || exit
 }
 
 for x in "${install[@]}"
