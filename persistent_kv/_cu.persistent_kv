@@ -8,6 +8,8 @@ CU_ERROR_USAGE=2
 CU_ERROR_NOT_FOUND=40
 CU_ERROR_ALREADY_EXISTS=41
 
+USER="$(whoami)"
+
 function echo_err() {
   [ "$PERSISTENT_KV_DEBUG" == "true" ] || return 0
   echo "cu.persistent_kv: $@" >&2
@@ -48,7 +50,7 @@ fi
 ########## BEGIN list subcommand ##########
 
 if [[ "${subcommand}" == "list" ]]; then
-  [ -r "${STORAGE_DIR}" ] || { echo_err "Permission denied: failed to list directory"; exit $CU_ERROR; }
+  [ -r "${STORAGE_DIR}" ] || { echo_err "Permission denied: $USER does not have permission to read storage directory '${STORAGE_DIR}'"; exit $CU_ERROR; }
   items=()
   ns_filter=''
   [ -n "$namespace" ] && ns_filter="^${namespace}\."
@@ -104,6 +106,7 @@ fi
 
 ########## BEGIN set subcommand ##########
 if [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
+  [ -w "${STORAGE_DIR}" ] || { echo_err "Permission denied: $USER does not have permission to write in storage directory '${STORAGE_DIR}'"; exit $CU_ERROR; }
   if [ -f "${key_file}" ]; then
     [ "${subcommand}" == "set" ] && { echo_err "Key ${key} in namespace ${namespace} already exists"; exit $CU_ERROR_ALREADY_EXISTS; }
   else
@@ -116,6 +119,7 @@ fi
 
 ########## BEGIN delete subcommand ##########
 if [[ "${subcommand}" == "delete" ]]; then
+  [ -w "${STORAGE_DIR}" ] || { echo_err "Permission denied: $USER does not have permission to delete in storage directory '${STORAGE_DIR}'"; exit $CU_ERROR; }
   [ -f "${key_file}" ] || { echo_err "Key ${key} in namespace ${namespace} not found"; exit $CU_ERROR_NOT_FOUND; }
   rm "${key_file}" > /dev/null 2>&1 || { echo_err "Failed to delete key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
   exit
