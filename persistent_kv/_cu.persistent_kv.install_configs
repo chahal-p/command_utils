@@ -12,7 +12,7 @@ storage_dir="${path%/}"
 
 perms="$(ls -ld "${storage_dir}")"
 
-[[ "${perms}" =~ ^drwxrwxrwt ]] || { echo "Storage directory ${storage_dir} has incorrect permissions. Please run 'chmod 1777 ${storage_dir}' to fix this." >&2; exit 1; }
+[[ "${perms}" =~ ^drwxrwxrwt ]] || { echo "WARNING: All might not be able to read or write in storage directory '${storage_dir}'. Permission 1777 is recommended." >&2; }
 
 cat << EOF | bash "${installer}" --name "_cu.persistent_kv.configs" --installation_path "${installation_path}" --content -
 #!/usr/bin/env bash
