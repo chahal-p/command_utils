@@ -55,7 +55,8 @@ if [[ "${subcommand}" == "list" ]]; then
   ns_filter=''
   [ -n "$namespace" ] && ns_filter="^${namespace}\."
   for x in $(ls -1 --color=never "${STORAGE_DIR}" | grep "$ns_filter"); do
-    [ -r "${STORAGE_DIR%/}/${x}" ] || continue
+    fp="${STORAGE_DIR%/}/${x}"
+    [ -f "${fp}" ] && [ -r "${fp}" ] || continue
     IFS='.' read -r n k <<< "${x}"
     if [[ -z "${namespace}" ]]; then
       items+=("${n}")
