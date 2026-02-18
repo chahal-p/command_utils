@@ -9,6 +9,7 @@ CU_ERROR_NOT_FOUND=40
 CU_ERROR_ALREADY_EXISTS=41
 
 function echo_err() {
+  [ "$PERSISTENT_KV_DEBUG" == "true" ] || return 0
   echo "cu.persistent_kv: $@" >&2
 }
 
@@ -47,7 +48,7 @@ fi
 ########## BEGIN list subcommand ##########
 
 if [[ "${subcommand}" == "list" ]]; then
-  ls "${STORAGE_DIR}" > /dev/null 2>&1 || { echo_err "Failed to list directory"; exit $CU_ERROR; }
+  [ -r "${STORAGE_DIR}" ] || { echo_err "Permission denied: failed to list directory"; exit $CU_ERROR; }
   items=()
   ns_filter=''
   [ -n "$namespace" ] && ns_filter="^${namespace}\."
