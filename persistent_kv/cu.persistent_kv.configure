@@ -2,7 +2,7 @@
 
 
 parsed_args=$(pflags parse --name "$(basename "${0}")" ---- \
-  -l storage_dir -t string -h "Storage directory path for the persistent kv, it must have 1777 permissions" ---- "$@") || exit
+  -l storage_dir -t string -h "Storage directory path for the persistent kv, recommended permissions on storage directory is 1777" ---- "$@") || exit
 
 eval set -- "${parsed_args[@]}"
 
