@@ -1,22 +1,5 @@
 #!/usr/bin/env bash
 
-function escape() {
-  arg="$1"
-  local len=$(cu.strings.length "$arg")
-  local res
-  local i
-  for (( i=0; i<len; i++ )); do
-    chr="${arg:i:1}"
-    if [[ "$chr" == '"' ]]
-    then
-      res+="\\\\$chr"
-    else
-      res+="$chr"
-    fi
-  done
-  printf '%s' "$res"
-}
-
 arg="$1"
 if [[ "$arg" == *\ * ]] ||
     [[ "$arg" == *\$* ]] ||
@@ -37,8 +20,7 @@ if [[ "$arg" == *\ * ]] ||
     [[ "$arg" == *\%* ]] ||
     [[ "$arg" == *\?* ]]
 then
-    # escape_arg="$(escape "$arg")"
-    printf '%s' "'$arg'"
-    exit 0
+  cu.strings.quoted "$arg"
+  exit 0
 fi
 printf '%s' "$arg"
