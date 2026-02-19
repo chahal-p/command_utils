@@ -7,5 +7,5 @@ key="${kv%"=$value"}"
 
 cu.install --name "$key" --installation_path "$HOME/.local/bin" --content - <<EOF
 #!/usr/bin/env bash
-$value "\$@"
+exec -a "$key" $value "\$@"
 EOF
