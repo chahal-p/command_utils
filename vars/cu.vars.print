@@ -7,7 +7,7 @@ readarray -t vars < <(_cu.persistent_kv list "${namespace}" 2>/dev/null)
 
 l=0
 for var in "${vars[@]}"; do
-  l=$(cu.numbers.max "${l}" "$(cu.strings.length "${var}")")
+  l=$(cu.numbers.max "${l}" "${#var}")
 done
 
 MAX_LEN=80
