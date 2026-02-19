@@ -11,7 +11,7 @@ CU_ERROR_ALREADY_EXISTS=41
 USER="$(whoami)"
 
 function echo_err() {
-  [ "$PERSISTENT_KV_DEBUG" == "true" ] || return 0
+  [ "$FLAGS_PERSISTENT_KV_DEBUG_MODE" == "true" ] || return 0
   echo "cu.persistent_kv: $@" >&2
 }
 
