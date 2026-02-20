@@ -15,7 +15,9 @@ done
 
 parsed_args=$(pflags parse --name "$(basename "$0")" ---- \
   -s c -l confirm -t bool -h "Show command and ask for confirmation before running" -- \
-  -s v -l verbose -t bool -h "Show command and run" ---- "${internal_args[@]}") || exit
+  -s v -l verbose -t bool -h "Show command and run" -- \
+  -l lock_file -t string -h "Lock file to use for locking. If not specified, no locking will be acquired\n By default, the lock is exclusive" -- \
+  ---- "${internal_args[@]}") || exit
 
 eval set -- "${parsed_args}"
 
@@ -77,4 +79,11 @@ function format_command() {
 
 [ "$FLAGS_confirm" == "true" ] && { cu.confirm "Confirm command" || exit 1; }
 
-exec "${cmd_and_args[@]}"
+if [[ -n "$FLAGS_lock_file" ]]; then
+  [ -f "$FLAGS_lock_file" ] || { echo "Lock file does not exist" >&2; exit 1; }
+  [ -r "$FLAGS_lock_file" ] || { echo "Lock file is not readable" >&2; exit 1; }
+  exec 200<"$FLAGS_lock_file"
+  cu.lock --fd 200 || { echo "Failed to acquire lock" >&2; exit 1; }
+fi
+
+command "${cmd_and_args[@]}"
