@@ -16,7 +16,7 @@ done
 parsed_args=$(pflags parse --name "$(basename "$0")" ---- \
   -s c -l confirm -t bool -h "Show command and ask for confirmation before running" -- \
   -s v -l verbose -t bool -h "Show command and run" -- \
-  -l lock_file -t string -h "Lock file to use for locking. If not specified, no locking will be acquired\n By default, the lock is exclusive" -- \
+  -l lock_file -t string --default '' -h "Lock file to use for locking. If not specified, no locking will be acquired\n By default, the lock is exclusive" -- \
   ---- "${internal_args[@]}") || exit
 
 eval set -- "${parsed_args}"
