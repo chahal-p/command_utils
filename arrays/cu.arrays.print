@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
 
-[ "$#" != "0" ] && printf "['%s']" "$(cu.strings.join "', '" "$@")" && exit 0
+args=()
+while [[ ${#@} -gt 0 ]]; do
+  args+=("$(cu.strings.double_quoted "${1}")")
+  shift
+done
+
+[ "${#args[@]}" != "0" ] && printf "[%s]" "$(cu.strings.join ", " "${args[@]}")" && exit 0
 printf "[]"
