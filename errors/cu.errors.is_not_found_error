@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-source cu.errors.codes
-
-err="$1"
-[ "$err" == "$CU_ERROR_NOT_FOUND" ] || exit $CU_ERROR
-exit $CU_SUCCESS

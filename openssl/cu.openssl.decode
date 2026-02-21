@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source cu.errors_lib.bash
+
 source pbash-args.sh || { echo "pbash-args.sh is not installed"; exit 1; }
 
 type=()

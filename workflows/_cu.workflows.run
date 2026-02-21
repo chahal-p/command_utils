@@ -41,7 +41,7 @@ function workflow_pop() {
   local scheduled_at
   name="$1"
   scheduled_at="$(_cu.persistent_kv get _cu_workflows_scheduled_${USER} "$name" 2>/dev/null)" || return 1
-  [[ ${scheduled_at%.*} -le $(date +%s) ]] || return 1
+  [[ ${scheduled_at} -le $(date +%s%N) ]] || return 1
   return 0
 }
 
@@ -61,7 +61,8 @@ function schedule_next_workflow() {
     log_error "Failed to get workflow interval for ${name}"
     return $code
   fi
-  scheduled_at="$(date +%s.%N -d "+${interval} seconds")"
+  nanoseconds_interval="$(( interval * 1000000000 ))"
+  scheduled_at="$(( $(date +%s%N) + nanoseconds_interval ))"
   printf '%s' "$scheduled_at" | _cu.persistent_kv set_overwrite _cu_workflows_scheduled_${USER} "$name"
 }
 
@@ -95,7 +96,7 @@ for wf_name in "${wfs[@]}"; do
   wf_at=$(_cu.persistent_kv get _cu_workflows_scheduled_${USER} "${wf_name}" 2>/dev/null)
   code=$?
   [ $code -eq 0 ] || { [ $code -eq 40 ] && continue || { log_error "Failed to get workflow scheduled time for ${wf_name}"; exit $code; } }
-  [[ ${wf_at%.*} -le $(date +%s) ]] && wf_scheduled+=("${wf_name}:${wf_at}")
+  [[ ${wf_at} -le $(date +%s%N) ]] && wf_scheduled+=("${wf_name}:${wf_at}")
 done
 
 IFS=$'\n' sorted_wf_scheduled=($(printf "%s\n" "${wf_scheduled[@]}" | sort -t: -k2n,2n))

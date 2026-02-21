@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source cu.errors_lib.bash
+
 parsed_args=$(pflags parse --name "$(basename "$0")" ---- \
   -l 'date' -t string --default '' -h 'Date to convert to epoch' -- \
   -l 'out_seconds' -t bool -h 'Output epoch seconds' -- \
@@ -54,4 +56,7 @@ then
 elif [ "${FLAGS_out_seconds}" == "true" ]
 then
   echo "$((${nanoseconds} / 1000000000))"
+else
+  cu.errors.die_usage "One of --out_nanoseconds, --out_microseconds, --out_milliseconds or --out_seconds should be passed"
 fi
+

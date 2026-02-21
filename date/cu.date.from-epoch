@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source cu.errors_lib.bash
+
 parsed_args="$(pflags parse --name "$(basename "${0}")" ---- \
   -l seconds -t number --default '' -h "Input seconds" -- \
   -l milliseconds -t number --default '' -h "Input milliseconds" -- \
@@ -25,7 +27,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      [ "${found_input_type}" == "true" ] && { cu.errors.echo "Only one should be passed out of --nanoseconds, --microseconds, --milliseconds or --seconds"; exit 2; }
+      [ "${found_input_type}" == "true" ] && cu.errors.die_usage "Only one should be passed out of --nanoseconds, --microseconds, --milliseconds or --seconds"
       arg_name="${1#-}"
       arg_name="${arg_name#-}"
       eval "FLAGS_${arg_name}='$2'"
@@ -35,7 +37,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[ "${found_input_type}" == "false" ] && { cu.errors.echo "One of --nanoseconds, --microseconds, --milliseconds or --seconds should be passed"; exit 2; }
+[ "${found_input_type}" == "false" ] && cu.errors.die_usage "One of --nanoseconds, --microseconds, --milliseconds or --seconds should be passed"
 
 nanoseconds_input=""
 
@@ -44,15 +46,18 @@ nanoseconds_input=""
 [ -n "${FLAGS_milliseconds}" ] && nanoseconds_input="$((${FLAGS_milliseconds} * 1000000))"
 [ -n "${FLAGS_seconds}" ] && nanoseconds_input="$((${FLAGS_seconds} * 1000000000))"
 
-rem="$((${nanoseconds_input} % 1000000000))"
 seconds_input="$((${nanoseconds_input} / 1000000000))"
+
+rem="$((${nanoseconds_input} % 1000000000))"
+fractional_seconds=""
+[ "${rem}" != "0" ] && fractional_seconds=".${rem}"
 
 args=()
 [ "${FLAGS_out_utc}" == "true" ] && args+=("-u")
 
 if cu.is_macos
 then
-  exec date "${args[@]}" -r "$seconds_input" +"%Y-%m-%dT%H:%M:%S.${rem}%z"
+  exec date "${args[@]}" -r "$seconds_input" +"%Y-%m-%dT%H:%M:%S${fractional_seconds}%z"
 else
-  exec date "${args[@]}" -d @$seconds_input +"%Y-%m-%dT%H:%M:%S.${rem}%z"
+  exec date "${args[@]}" -d @$seconds_input +"%Y-%m-%dT%H:%M:%S${fractional_seconds}%z"
 fi

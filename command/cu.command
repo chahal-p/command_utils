@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source cu.errors_lib.bash
+
 internal_args=()
 while [[ $# -gt 0 ]]; do
   [[ "$1" == "--" ]] && { shift; break; }
@@ -13,7 +15,7 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-parsed_args=$(pflags parse --name "$(basename "$0")" ---- \
+parsed_args=$(pflags parse --name "$(basename "$0")" --usage "$(basename "$0") [options...] -- <command> [args...]" ---- \
   -s c -l confirm -t bool -h "Show command and ask for confirmation before running" -- \
   -s v -l verbose -t bool -h "Show command and run" -- \
   -l lock_file -t string --default '' -h "Lock file to use for locking. If not specified, no locking will be acquired\n By default, the lock is exclusive" -- \
@@ -72,18 +74,18 @@ function format_command() {
   cu.strings.join ' ' "${cmd[@]}"
 }
 
-[[ "${#@}" -gt 0 ]] && { echo "Unknown arguments: ${@}"; exit 2; }
-[[ "${#cmd_and_args[@]}" -eq 0 ]] && { echo "No command provided"; exit 1; }
+[[ "${#@}" -gt 0 ]] && cu.errors.die_usage "Unknown arguments: ${@}"
+[[ "${#cmd_and_args[@]}" -eq 0 ]] && cu.errors.die_usage "No command provided"
 
 [[ "$FLAGS_verbose" == "true" || "$FLAGS_confirm" == "true" ]] && echo "Command: $(format_command "${cmd_and_args[@]}")"
 
 [ "$FLAGS_confirm" == "true" ] && { cu.confirm "Confirm command" || exit 1; }
 
 if [[ -n "$FLAGS_lock_file" ]]; then
-  [ -f "$FLAGS_lock_file" ] || { echo "Lock file does not exist" >&2; exit 1; }
-  [ -r "$FLAGS_lock_file" ] || { echo "Lock file is not readable" >&2; exit 1; }
+  [ -f "$FLAGS_lock_file" ] || cu.errors.die_not_found "Lock file does not exist"
+  [ -r "$FLAGS_lock_file" ] || cu.errors.die $CU_ERROR_PERMISSION "Lock file is not readable"
   exec 200<"$FLAGS_lock_file"
-  cu.lock --fd 200 || { echo "Failed to acquire lock" >&2; exit 1; }
+  cu.lock --fd 200 || cu.errors.die $CU_ERROR "Failed to acquire lock"
 fi
 
 command "${cmd_and_args[@]}"

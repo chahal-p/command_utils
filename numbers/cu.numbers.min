@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source cu.errors_lib.bash
+
 m=$(getconf INT_MAX)
 for x in "$@"
 do
