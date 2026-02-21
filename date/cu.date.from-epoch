@@ -7,7 +7,7 @@ parsed_args="$(pflags parse --name "$(basename "${0}")" ---- \
   -l nanoseconds -t number --default '' -h "Input nanoseconds" -- \
   -l out_utc -t bool -h "Output in UTC instead of local time" -- \
   ---- "$@")" || exit
-echo "${parsed_args}"
+
 eval set -- "${parsed_args}"
 
 found_input_type=false
