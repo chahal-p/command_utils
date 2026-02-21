@@ -1,32 +1,58 @@
 #!/usr/bin/env bash
 
-source pbash-args.sh || { echo "pbash-args.sh is not installed"; exit 1; }
+parsed_args="$(pflags parse --name "$(basename "${0}")" ---- \
+  -l seconds -t number --default '' -h "Input seconds" -- \
+  -l milliseconds -t number --default '' -h "Input milliseconds" -- \
+  -l microseconds -t number --default '' -h "Input microseconds" -- \
+  -l nanoseconds -t number --default '' -h "Input nanoseconds" -- \
+  -l out_utc -t bool -h "Output in UTC instead of local time" -- \
+  ---- "$@")" || exit
+echo "${parsed_args}"
+eval set -- "${parsed_args}"
 
-pbash.args.atleast_one_arg_present -l 'nanoseconds:' -l 'microseconds:' -l 'milliseconds:' -l 'seconds:' -- "$@" ||
-{ cu.errors.echo "At least one of args --nanoseconds, --microseconds, --milliseconds or --seconds is required"; exit 1; }
+found_input_type=false
 
-values=()
+while [[ $# -gt 0 ]]; do
+  [[ "$1" == "--" ]] && { shift; break; }
+  [ -z "$2" ] && { shift 2; continue; }
+  case $1 in
+    --help)
+      printf '%s' "$2"
+      exit 0
+      ;;
+    --out_utc)
+      FLAGS_out_utc="$2"
+      shift 2
+      ;;
+    *)
+      [ "${found_input_type}" == "true" ] && { cu.errors.echo "Only one should be passed out of --nanoseconds, --microseconds, --milliseconds or --seconds"; exit 2; }
+      arg_name="${1#-}"
+      arg_name="${arg_name#-}"
+      eval "FLAGS_${arg_name}='$2'"
+      found_input_type=true
+      shift 2
+      ;;
+  esac
+done
 
-value=()
+[ "${found_input_type}" == "false" ] && { cu.errors.echo "One of --nanoseconds, --microseconds, --milliseconds or --seconds should be passed"; exit 2; }
 
-pbash.args.extract -l 'nanoseconds:' -o value -- "$@" && values+=("$value")
-pbash.args.extract -l 'microseconds:' -o value -- "$@" && values+=( $(($value * 1000)) )
-pbash.args.extract -l 'milliseconds:' -o value -- "$@" && values+=( $(($value * 1000000)) )
-pbash.args.extract -l 'seconds:' -o value -- "$@" && values+=( "$(($value * 1000000000))" )
+nanoseconds_input=""
 
-cu.strings.is_equal "${#values[@]}" "1" || { cu.errors.echo "Only one should be passed out of --nanoseconds, --microseconds, --milliseconds or --seconds"; exit 1; }
+[ -n "${FLAGS_nanoseconds}" ] && nanoseconds_input="${FLAGS_nanoseconds}"
+[ -n "${FLAGS_microseconds}" ] && nanoseconds_input="$((${FLAGS_microseconds} * 1000))"
+[ -n "${FLAGS_milliseconds}" ] && nanoseconds_input="$((${FLAGS_milliseconds} * 1000000))"
+[ -n "${FLAGS_seconds}" ] && nanoseconds_input="$((${FLAGS_seconds} * 1000000000))"
 
-nanoseconds="$values"
+rem="$((${nanoseconds_input} % 1000000000))"
+seconds_input="$((${nanoseconds_input} / 1000000000))"
 
-tz='local'
-pbash.args.is_switch_arg_enabled -l 'out-utc' -- "$@" && tz='utc'
+args=()
+[ "${FLAGS_out_utc}" == "true" ] && args+=("-u")
 
-seconds=$(($nanoseconds / 1000000000))
-rem=$(($nanoseconds % 1000000000))
-
-if [ "$tz" == "utc" ]
+if cu.is_macos
 then
-  cu.date -u -d @$seconds +"%Y-%m-%dT%H:%M:%S.${rem}Z"
+  exec date "${args[@]}" -r "$seconds_input" +"%Y-%m-%dT%H:%M:%S.${rem}%z"
 else
-  cu.date -d @$seconds +"%Y-%m-%dT%H:%M:%S.${rem}%:z"
+  exec date "${args[@]}" -d @$seconds_input +"%Y-%m-%dT%H:%M:%S.${rem}%z"
 fi

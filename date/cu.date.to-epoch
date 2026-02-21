@@ -1,25 +1,57 @@
 #!/usr/bin/env bash
 
-source pbash-args.sh || { echo "pbash-args.sh is not installed"; exit 1; }
+parsed_args=$(pflags parse --name "$(basename "$0")" ---- \
+  -l 'date' -t string --default '' -h 'Date to convert to epoch' -- \
+  -l 'out_seconds' -t bool -h 'Output epoch seconds' -- \
+  -l 'out_milliseconds' -t bool -h 'Output epoch milliseconds' -- \
+  -l 'out_microseconds' -t bool -h 'Output epoch microseconds' -- \
+  -l 'out_nanoseconds' -t bool -h 'Output epoch nanoseconds' ---- "$@") || exit
 
-pbash.args.is_switch_arg_enabled -l 'out-nanoseconds' -- "$@" ||
-pbash.args.is_switch_arg_enabled -l 'out-microseconds' -- "$@" ||
-pbash.args.is_switch_arg_enabled -l 'out-milliseconds' -- "$@" ||
-pbash.args.is_switch_arg_enabled -l 'out-seconds' -- "$@" ||
-{ cu.errors.echo "At least one of args --out-nanoseconds, --out-microseconds, --out-milliseconds or --out-seconds is required"; exit 1; }
+eval set -- "${parsed_args}"
 
-input="$(cu.date +%s%N)" # default is now
+while [[ $# -gt 0 ]]; do
+  [[ "$1" == "--" ]] && { shift; break; }
+  case $1 in
+    --help)
+      printf '%s' "$2"
+      exit 0
+      ;;
+    --date)
+      FLAGS_date="$2"
+      shift 2
+      ;;
+    *)
+      arg_name="${1#-}"
+      arg_name="${arg_name#-}"
+      eval "FLAGS_${arg_name}='$2'"
+      shift 2
+      ;;
+  esac
+done
 
-date_str=()
-pbash.args.extract -l 'date:' -o date_str -- "$@" && input="$(cu.date -d "$date_str" +%s%N)"
+nanoseconds=""
+if [ -z "${FLAGS_date}" ]
+then
+  nanoseconds="$(date +%s%N)"
+else
+  if cu.is_macos
+  then
+    nanoseconds=$(date -j -f "%Y-%m-%dT%H:%M:%S.%N%z" "${FLAGS_date}" +"%s%N")
+  else
+    nanoseconds=$(date -d "${FLAGS_date}" +"%s%N")
+  fi
+fi
 
-values=()
-
-pbash.args.is_switch_arg_enabled -l 'out-nanoseconds' -- "$@" && values+=("$input")
-pbash.args.is_switch_arg_enabled -l 'out-microseconds' -- "$@" && values+=( $(($input / 1000)) )
-pbash.args.is_switch_arg_enabled -l 'out-milliseconds' -- "$@" && values+=( $(($input / 1000000)) )
-pbash.args.is_switch_arg_enabled -l 'out-seconds' -- "$@" && values+=( "$(($input / 1000000000))" )
-
-cu.strings.is_equal "${#values[@]}" "1" || { cu.errors.echo "Only one should be passed out of --out-nanoseconds, --out-microseconds, --out-milliseconds or --out-seconds"; exit 1; }
-
-echo "$values"
+if [ "${FLAGS_out_nanoseconds}" == "true" ]
+then
+  echo "${nanoseconds}"
+elif [ "${FLAGS_out_microseconds}" == "true" ]
+then
+  echo "$((${nanoseconds} / 1000))"
+elif [ "${FLAGS_out_milliseconds}" == "true" ]
+then
+  echo "$((${nanoseconds} / 1000000))"
+elif [ "${FLAGS_out_seconds}" == "true" ]
+then
+  echo "$((${nanoseconds} / 1000000000))"
+fi
