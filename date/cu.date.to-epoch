@@ -36,9 +36,9 @@ then
 else
   if cu.is_macos
   then
-    nanoseconds=$(date -j -f "%Y-%m-%dT%H:%M:%S.%N%z" "${FLAGS_date}" +"%s%N")
+    nanoseconds=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "${FLAGS_date}" +"%s%N") || exit 1
   else
-    nanoseconds=$(date -d "${FLAGS_date}" +"%s%N")
+    nanoseconds=$(date -d "${FLAGS_date}" +"%s%N") || exit 1
   fi
 fi
 
