@@ -11,7 +11,7 @@ for name in $(_cu.persistent_kv list ${NAMESPACE_PREFIX}_${user} 2>/dev/null); d
   table+=("${name}")
   scheduled=$(_cu.persistent_kv get ${NAMESPACE_PREFIX}_scheduled_${user} "${name}" 2>/dev/null)
   code=$?
-  [ $code -eq 0 ] && [[ ${scheduled} -le $(date +%s%N) ]] && scheduled="Now"
+  [ $code -eq 0 ] && [[ ${scheduled} -le $(cu.date.to-epoch --out_nanoseconds) ]] && scheduled="Now"
   [ $code -eq 0 ] || scheduled="-"
 
   [ "${scheduled}" != "-" ] && [ "${scheduled}" != "Now" ] && scheduled=$(cu.date.from-epoch --seconds "$((${scheduled} / 1000000000))")

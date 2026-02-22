@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+source cu.errors_lib.bash
+
+function usage() {
+  echo "usage: date [-h] [--out_utc] [--enable_fraction] <epoch time in nanoseconds>"
+  echo ""
+  echo "positional arguments:"
+  echo "  <epoch time in nanoseconds>  Epoch time in nanoseconds"
+  echo ""
+  echo "optional arguments:"
+  echo "  -h, --help                 show this help message and exit"
+  echo "  --out_utc                  Output in UTC, default is local time"
+  echo "  --enable_fraction          Enable fractional seconds"
+}
+
+input=()
+
+FLAGS_out_utc="false"
+FLAGS_enable_fraction="false"
+
+while [[ $# -gt 0 ]]; do
+  arg="$1"
+  shift
+  val=""
+  value_found=0
+  if [[ $# -gt 0 ]] && [[ ! "$1" == -* ]]; then
+    val="$1"
+    value_found=1
+  fi
+  case "$arg" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --out_utc)
+      FLAGS_out_utc="true"
+      ;;
+    --out_utc=*)
+      val="${arg#--out_utc=}"
+      [[ "$val" =~ ^(true|false)$ ]] || cu.errors.die_usage "Invalid value ($val) for arg ${arg%=$val}. It can only be true or false"
+      FLAGS_out_utc="$val"
+      ;;
+    --enable_fraction)
+      FLAGS_enable_fraction="true"
+      ;;
+    --enable_fraction=*)
+      val="${arg#--enable_fraction=}"
+      [[ "$val" =~ ^(true|false)$ ]] || cu.errors.die_usage "Invalid value ($val) for arg ${arg%=$val}. It can only be true or false"
+      FLAGS_enable_fraction="$val"
+      ;;
+    -*)
+      echo "Unrecognized arguments: $arg" >&2
+      exit 2
+      ;;
+    *)
+      input+=("$arg")
+      ;;
+  esac
+done
+
+[[ ${#input[@]} -gt 1 ]] && cu.errors.die_usage "Epoch nanoseconds can not be specified more than once"
+[[ ${#input[@]} -eq 0 ]] && input=("$(date +%s%N)")
+
+nanoseconds_input="${input[0]}"
+[[ $nanoseconds_input =~ ^[0-9]+$ ]] || cu.errors.die $CU_ERROR_INVALID_ARGUMENT "Invalid epoch nanoseconds: $nanoseconds_input"
+seconds_input="$((${nanoseconds_input} / 1000000000))"
+
+rem="$((${nanoseconds_input} % 1000000000))"
+fractional_seconds=""
+[ "${FLAGS_enable_fraction}" == "true" ] && [ "${rem}" != "0" ] && fractional_seconds=".${rem}"
+
+args=()
+[ "${FLAGS_out_utc}" == "true" ] && args+=("-u")
+
+if cu.is_macos
+then
+  exec date "${args[@]}" -r "$seconds_input" +"%Y-%m-%dT%H:%M:%S${fractional_seconds}%z"
+else
+  exec date "${args[@]}" -d @$seconds_input +"%Y-%m-%dT%H:%M:%S${fractional_seconds}%z"
+fi

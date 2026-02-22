@@ -8,6 +8,7 @@ parsed_args="$(pflags parse --name "$(basename "${0}")" ---- \
   -l microseconds -t number --default '' -h "Input microseconds" -- \
   -l nanoseconds -t number --default '' -h "Input nanoseconds" -- \
   -l out_utc -t bool -h "Output in UTC instead of local time" -- \
+  -l enable_fraction -t bool -h "Enable fractional seconds" -- \
   ---- "$@")" || exit
 
 eval set -- "${parsed_args}"
@@ -24,6 +25,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --out_utc)
       FLAGS_out_utc="$2"
+      shift 2
+      ;;
+    --enable_fraction)
+      FLAGS_enable_fraction="$2"
       shift 2
       ;;
     *)
@@ -46,18 +51,4 @@ nanoseconds_input=""
 [ -n "${FLAGS_milliseconds}" ] && nanoseconds_input="$((${FLAGS_milliseconds} * 1000000))"
 [ -n "${FLAGS_seconds}" ] && nanoseconds_input="$((${FLAGS_seconds} * 1000000000))"
 
-seconds_input="$((${nanoseconds_input} / 1000000000))"
-
-rem="$((${nanoseconds_input} % 1000000000))"
-fractional_seconds=""
-[ "${rem}" != "0" ] && fractional_seconds=".${rem}"
-
-args=()
-[ "${FLAGS_out_utc}" == "true" ] && args+=("-u")
-
-if cu.is_macos
-then
-  exec date "${args[@]}" -r "$seconds_input" +"%Y-%m-%dT%H:%M:%S${fractional_seconds}%z"
-else
-  exec date "${args[@]}" -d @$seconds_input +"%Y-%m-%dT%H:%M:%S${fractional_seconds}%z"
-fi
+exec cu.date "${nanoseconds_input}" --out_utc="${FLAGS_out_utc}" --enable_fraction="${FLAGS_enable_fraction}"
