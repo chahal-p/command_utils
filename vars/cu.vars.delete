@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+NAMESPACE_PREFIX="_cu_vars"
+
 parsed=$(pflags parse --name cu.vars.delete ---- \
   -l var -t string --regex '^[a-zA-Z0-9_]+$' -h 'Name of var' ---- "$@") || exit
 
@@ -24,7 +26,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 user="$(whoami)"
-namespace="_cu_vars_${user}"
+namespace="${NAMESPACE_PREFIX}_${user}"
 
 for var in ${vars[@]}; do
   _cu.persistent_kv delete "${namespace}" "${var}" 2>/dev/null

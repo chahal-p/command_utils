@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+NAMESPACE_PREFIX="_cu_persistent_source"
+
 parsed=$(pflags parse --name "$(basename "$0")" ---- \
   -s n -l name -t string --regex "^[a-zA-Z0-9_-]+$" -h "Name of the source" -- \
   -l sh -t string --allowed bash --allowed zsh -h "Shell type (bash or zsh)" ---- "${@}") || exit
@@ -24,5 +26,5 @@ done
 
 user=$(whoami)
 
-_cu.persistent_kv delete "_cu_persistent_source_data_${FLAGS_sh}_${user}" "$FLAGS_name"
-_cu.persistent_kv delete "_cu_persistent_source_index_${FLAGS_sh}_${user}" "$FLAGS_name"
+_cu.persistent_kv delete "${NAMESPACE_PREFIX}_data_${FLAGS_sh}_${user}" "$FLAGS_name"
+_cu.persistent_kv delete "${NAMESPACE_PREFIX}_index_${FLAGS_sh}_${user}" "$FLAGS_name"

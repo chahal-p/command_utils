@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+NAMESPACE_PREFIX="_cu_persistent_source"
+
 parsed=$(pflags parse --name "$(basename "$0")" ---- \
   -s f -l file -t string -h "File to add (Use - for stdin)" -- \
   -s n -l name -t string -h "Name of the source" --regex "^[a-zA-Z0-9_-]+$" -- \
@@ -33,5 +35,5 @@ fi
 
 user=$(whoami)
 
-echo -n "$FLAGS_index" | _cu.persistent_kv set_overwrite "_cu_persistent_source_index_${FLAGS_sh}_${user}" "$FLAGS_name"
-cat "$FLAGS_file" | _cu.persistent_kv set_overwrite "_cu_persistent_source_data_${FLAGS_sh}_${user}" "$FLAGS_name"
+echo -n "$FLAGS_index" | _cu.persistent_kv set_overwrite "${NAMESPACE_PREFIX}_index_${FLAGS_sh}_${user}" "$FLAGS_name"
+cat "$FLAGS_file" | _cu.persistent_kv set_overwrite "${NAMESPACE_PREFIX}_data_${FLAGS_sh}_${user}" "$FLAGS_name"

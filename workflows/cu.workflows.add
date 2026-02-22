@@ -43,7 +43,7 @@ done
 
 user="$(whoami)"
 
-printf '%s' "${workflow_command_encoded}" | _cu.persistent_kv set _cu_workflows_${user} "${name}" 2>/dev/null
+printf '%s' "${workflow_command_encoded}" | _cu.persistent_kv set ${NAMESPACE_PREFIX}_${user} "${name}" 2>/dev/null
 code=$?
 [ $code -eq 41 ] && { echo "Workflow ${name} already exists" >&2; exit $code; } || exit $code
 

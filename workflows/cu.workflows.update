@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+NAMESPACE_PREFIX="_cu_workflows"
+
 usage='usage: workflows.update -n  [-h] -- <workflow command and args...>'
 
 internal_args=()
@@ -43,5 +45,5 @@ done
 
 user="$(whoami)"
 
-printf '%s' "${workflow_command_encoded}" | _cu.persistent_kv set_overwrite _cu_workflows_${user} "${name}"
+printf '%s' "${workflow_command_encoded}" | _cu.persistent_kv set_overwrite ${NAMESPACE_PREFIX}_${user} "${name}"
 

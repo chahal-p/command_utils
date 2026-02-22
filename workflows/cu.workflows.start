@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+NAMESPACE_PREFIX="_cu_workflows"
+
 parsed_args=$(pflags parse --name "$(basename "${0}")" ---- \
   -s n -l name -t string --regex "^[a-zA-Z0-9_-]+$" -h "Name of the workflow" -- \
   -l at -t number --default 0 --regex "^[0-9]+$" -h "Run the workflow at epoch time in seconds" -- \
@@ -33,20 +35,20 @@ fi
 
 user="$(whoami)"
 
-_cu.persistent_kv get _cu_workflows_${user} "${FLAGS_name}" >/dev/null 2>&1
+_cu.persistent_kv get ${NAMESPACE_PREFIX}_${user} "${FLAGS_name}" >/dev/null 2>&1
 code=$?
 [ $code -eq 0 ] || {
   [ $code -eq 40 ] && { echo "Workflow ${FLAGS_name} not found" >&2; }
   exit $code
 }
 
-printf '%s' "${FLAGS_at}" | _cu.persistent_kv set _cu_workflows_scheduled_${user} "${FLAGS_name}" 2>/dev/null
+printf '%s' "${FLAGS_at}" | _cu.persistent_kv set ${NAMESPACE_PREFIX}_scheduled_${user} "${FLAGS_name}" 2>/dev/null
 code=$?
 [ $code -eq 41 ] && { printf 'Workflow %s is already scheduled\n' "${FLAGS_name}" >&2; exit 0; }
 [[ $code -eq 0 ]] || { printf 'Failed to set scheduled time for workflow %s\n' "${FLAGS_name}" >&2; exit $code; }
 
 if [ -n "${FLAGS_interval}" ]; then
-  printf '%s' "${FLAGS_interval}" | _cu.persistent_kv set_overwrite _cu_workflows_intervals_${user} "${FLAGS_name}"
+  printf '%s' "${FLAGS_interval}" | _cu.persistent_kv set_overwrite ${NAMESPACE_PREFIX}_intervals_${user} "${FLAGS_name}"
   code=$?
   [[ $code -eq 0 ]] || { printf 'Failed to set interval for workflow %s\n' "${FLAGS_name}" >&2; exit $code; }
 fi
