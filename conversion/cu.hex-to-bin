@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-xxd -ps -r "$@"
+exec xxd -ps -r "$@"

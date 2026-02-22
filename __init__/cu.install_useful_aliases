@@ -11,7 +11,8 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      shift
+      echo "Unknown argument $1" >&2
+      exit 1
       ;;
   esac
 done
@@ -19,7 +20,7 @@ done
 cu.install_alias bin-to-hex=cu.bin-to-hex || exit
 cu.install_alias cat-which=cu.cat.which || exit
 cu.install_alias copy-to-clipboard=cu.copy-to-clipboard || exit
-cu.install_alias evalc=cu.eval.confirm || exit
+cu.install_alias confirm='cu.command -c --' || exit
 cu.install_alias hex-to-bin=cu.hex-to-bin || exit
 cu.install_alias less-which=cu.less.which || exit
 cu.install_alias py-print=cu.python.print || exit
@@ -27,23 +28,12 @@ cu.install_alias vars-print=cu.vars.print || exit
 cu.install_alias vim-which=cu.vim.which || exit
 
 ############ Date ############
-echo 'complete -F _complete_cu.date.add date-add' | cu.persistent_source.add --sh bash -n _complete_date-add -f -
-cu.install_alias date-add=cu.date.add || exit
 
 echo 'complete -F _complete_cu.date.from-epoch date-from-epoch' | cu.persistent_source.add --sh bash -n _complete_date-from-epoch -f -
 cu.install_alias date-from-epoch=cu.date.from-epoch || exit
 
-echo 'complete -F _complete_cu.date.local-to-utc date-local-to-utc' | cu.persistent_source.add --sh bash -n _complete_date-local-to-utc -f -
-cu.install_alias date-local-to-utc=cu.date.local-to-utc || exit
-
-echo 'complete -F _complete_cu.date.subtract date-subtract' | cu.persistent_source.add --sh bash -n _complete_date-subtract -f -
-cu.install_alias date-subtract=cu.date.subtract || exit
-
 echo 'complete -F _complete_cu.date.to-epoch date-to-epoch' | cu.persistent_source.add --sh bash -n _complete_date-to-epoch -f -
 cu.install_alias date-to-epoch=cu.date.to-epoch || exit
-
-echo 'complete -F _complete_cu.date.utc-to-local date-utc-to-local' | cu.persistent_source.add --sh bash -n _complete_date-utc-to-local -f -
-cu.install_alias date-utc-to-local=cu.date.utc-to-local || exit
 
 ############ Openssl ############
 echo 'complete -F _complete_cu.openssl.convert-x509-der-to-pem openssl-convert-x509-der-to-pem' | cu.persistent_source.add --sh bash -n _complete_openssl-convert-x509-der-to-pem -f -

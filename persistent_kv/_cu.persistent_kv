@@ -2,11 +2,7 @@
 
 set -eo pipefail
 
-CU_SUCCESS=0
-CU_ERROR=1
-CU_ERROR_USAGE=2
-CU_ERROR_NOT_FOUND=40
-CU_ERROR_ALREADY_EXISTS=41
+source cu.errors_lib.bash
 
 USER="$(whoami)"
 

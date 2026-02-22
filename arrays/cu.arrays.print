@@ -6,5 +6,5 @@ while [[ ${#@} -gt 0 ]]; do
   shift
 done
 
-[ "${#args[@]}" != "0" ] && printf "[%s]" "$(cu.strings.join ", " "${args[@]}")" && exit 0
-printf "[]"
+[ "${#args[@]}" == "0" ] && printf "[]\n" && exit 0
+printf "[%s]\n" "$(cu.strings.join ", " "${args[@]}")"
