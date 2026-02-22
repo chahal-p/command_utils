@@ -5,6 +5,7 @@ parsed=$(pflags parse --name "$(basename "$0")" --description "Install useful al
 eval set -- "$parsed"
 
 while [[ $# -gt 0 ]]; do
+  [[ "$1" == "--" ]] && shift && break
   case $1 in
     --help)
       printf '%s' "$2"

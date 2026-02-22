@@ -83,7 +83,7 @@ function format_command() {
 
 if [[ -n "$FLAGS_lock_file" ]]; then
   [ -f "$FLAGS_lock_file" ] || cu.errors.die_not_found "Lock file does not exist"
-  [ -r "$FLAGS_lock_file" ] || cu.errors.die $CU_ERROR_PERMISSION "Lock file is not readable"
+  [ -r "$FLAGS_lock_file" ] || cu.errors.die $CU_ERROR_PERMISSION_DENIED "Lock file is not readable"
   exec 200<"$FLAGS_lock_file"
   cu.lock --fd 200 || cu.errors.die $CU_ERROR "Failed to acquire lock"
 fi
