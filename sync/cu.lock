@@ -81,11 +81,11 @@ done
 
 if [ -n "$FLAGS_unlock" ]; then
   [ "$unlock_supported" == "false" ] && { echo "Unlock not supported for $cmd" >&2; exit 2; }
-  $cmd --unlock "$FLAGS_fd"
+  exec $cmd --unlock "$FLAGS_fd"
 else
   if [ -z "$FLAGS_timeout" ]; then
-    $cmd "$FLAGS_fd"
+    exec $cmd "$FLAGS_fd"
   else
-    $cmd $time_arg "$FLAGS_timeout" "$FLAGS_fd"
+    exec $cmd $time_arg "$FLAGS_timeout" "$FLAGS_fd"
   fi
 fi

@@ -33,4 +33,4 @@ existing_config_installation="$(which _cu.persistent_kv.configs)"
   [[ "$(dirname "${existing_config_installation}")" == "${installation_path}" ]] || { echo "There is another persistent KV installation at ${existing_config_installation}. Please remove it before proceeding." >&2; exit 1; }
 }
 
-_cu.persistent_kv.install_configs cu.install "${installation_path}"  "${FLAGS_storage_dir}"
+exec _cu.persistent_kv.install_configs cu.install "${installation_path}"  "${FLAGS_storage_dir}"

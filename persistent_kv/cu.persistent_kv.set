@@ -95,7 +95,7 @@ set_cmd="set"
 [[ "$FLAGS_force" == "true" ]] && set_cmd="set_overwrite"
 
 if [ "$read_stdin" = true ]; then
-  cat | _cu.persistent_kv "${set_cmd}" "${FLAGS_namespace}" "${FLAGS_key}"
+  exec _cu.persistent_kv "${set_cmd}" "${FLAGS_namespace}" "${FLAGS_key}"
 else
   printf "%s" "${FLAGS_value}" | _cu.persistent_kv "${set_cmd}" "${FLAGS_namespace}" "${FLAGS_key}"
 fi

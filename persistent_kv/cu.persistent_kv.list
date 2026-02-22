@@ -46,4 +46,4 @@ done
 
 args=()
 [ -n "${FLAGS_namespace}" ] && args+=("${FLAGS_namespace}")
-_cu.persistent_kv list "${args[@]}"
+exec _cu.persistent_kv list "${args[@]}"
