@@ -65,8 +65,8 @@ if [[ "${subcommand}" == "list" ]]; then
     printf '%s\n' "${items[@]}" | sort -u
   else
     items=()
-    exclude_internal_ns=("::")
-    [[ "$FLAGS_SHOW_INTERNAL_NAMESPACES" == "true" ]] && exclude_internal_ns=(-e ^_cu_vars_.* -e ^_cu_persistent_source_.* -e ^_cu_workflows_.*)
+    exclude_internal_ns=(-e ^_cu_vars_.* -e ^_cu_persistent_source_.* -e ^_cu_workflows_.*)
+    [[ "$FLAGS_SHOW_INTERNAL_NAMESPACES" == "true" ]] && exclude_internal_ns=("::")
     for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep -v "\/$" | grep -v "${exclude_internal_ns[@]}"); do
       [ -r "${STORAGE_DIR%/}/${x}" ] || continue
       items+=("${x%.*}")
