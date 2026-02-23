@@ -53,23 +53,23 @@ function validate_key() {
 ########## BEGIN list subcommand ##########
 
 if [[ "${subcommand}" == "list" ]]; then
-  [[ -z "${namespace}" ]] || validate_namespace
   [ -r "${STORAGE_DIR}" ] || die $CU_ERROR "Permission denied: $USER does not have permission to read storage directory '${STORAGE_DIR}'"
-  items=()
-  ns_filter=''
-  [ -n "$namespace" ] && ns_filter="^${namespace}\."
-  for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep "$ns_filter" | grep -v "\/$"); do
-    [ -r "${STORAGE_DIR%/}/${x}" ] || continue
-    IFS='.' read -r n k <<< "${x}"
-    if [[ -z "${namespace}" ]]; then
-      items+=("${n}")
-    elif [[ "${n}" == "${namespace}" ]]; then
-      items+=("${k}")
-    fi
-  done
-  if [[ ${#items[@]} -eq 0 ]]; then
-    [[ -z "${namespace}" ]] || die $CU_ERROR_NOT_FOUND "Namespace ${namespace} not found"
+  if [[ -n "${namespace}" ]]; then
+    validate_namespace
+    items=()
+    for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep -v "\/$" | grep "^${namespace}\."); do
+      [ -r "${STORAGE_DIR%/}/${x}" ] || continue
+      items+=("${x#*.}")
+    done
+    [[ ${#items[@]} -eq 0 ]] && die $CU_ERROR_NOT_FOUND "Namespace ${namespace} not found"
+    printf '%s\n' "${items[@]}" | sort -u
   else
+    items=()
+    for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep -v "\/$"); do
+      [ -r "${STORAGE_DIR%/}/${x}" ] || continue
+      items+=("${x%.*}")
+    done
+    [[ ${#items[@]} -eq 0 ]] && exit
     printf '%s\n' "${items[@]}" | sort -u
   fi
   exit
