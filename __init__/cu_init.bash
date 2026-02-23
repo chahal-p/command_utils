@@ -43,3 +43,7 @@ function cu.python.venv-activate() {
 }
 
 source <(cu.persistent_source.print_sourceable --sh bash)
+
+# Exported flags
+export FLAGS_CU_PERSISTENT_KV_DEBUG_MODE="false"
+export FLAGS_CU_PERSISTENT_KV_SHOW_INTERNAL_NAMESPACES="false"
