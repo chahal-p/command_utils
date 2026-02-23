@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 
+source cu.errors_lib.bash || exit
+
 function usage() {
   echo "Usage: $(basename "$0") <command> [args...]"
   echo "  <command>: The command to run on each line of the input from stdin"
-  exit 1
 }
 
 if [[ $# -eq 0 || "$1" == "-h" || "$1" == "--help" ]]; then
   usage
-  exit 1
+  cu.errors.die_usage
 fi
 
 while IFS= read -r line; do

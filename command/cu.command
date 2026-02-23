@@ -79,7 +79,7 @@ function format_command() {
 
 [[ "$FLAGS_verbose" == "true" || "$FLAGS_confirm" == "true" ]] && echo "Command: $(format_command "${cmd_and_args[@]}")"
 
-[ "$FLAGS_confirm" == "true" ] && { cu.confirm "Confirm command" || exit 1; }
+[ "$FLAGS_confirm" == "true" ] && { cu.confirm "Confirm command" || exit; }
 
 if [[ -n "$FLAGS_lock_file" ]]; then
   [ -f "$FLAGS_lock_file" ] || cu.errors.die_not_found "Lock file does not exist"

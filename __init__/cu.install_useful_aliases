@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 
+source cu.errors_lib.bash
+
 parsed=$(pflags parse --name "$(basename "$0")" --description "Install useful aliases of commands without cu namespace" ---- ---- "$@") || exit
 
 eval set -- "$parsed"
 
 while [[ $# -gt 0 ]]; do
-  [[ "$1" == "--" ]] && shift && break
+  [[ "$1" == "--" ]] && shift && continue
   case $1 in
     --help)
       printf '%s' "$2"
       exit 0
       ;;
     *)
-      echo "Unknown argument $1" >&2
-      exit 1
+      cu.errors.die_usage "Unknown argument $1"
       ;;
   esac
 done

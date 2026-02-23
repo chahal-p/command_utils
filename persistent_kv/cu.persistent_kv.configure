@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+source cu.errors_lib.bash || exit
 
 parsed_args=$(pflags parse --name "$(basename "${0}")" ---- \
   -l storage_dir -t string -h "Storage directory path for the persistent kv, recommended permissions on storage directory is 1777" ---- "$@") || exit
@@ -22,15 +23,15 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -z "${FLAGS_storage_dir}" ]] && { echo "Storage directory path cannot be empty" >&2; exit 1; }
+[[ -z "${FLAGS_storage_dir}" ]] && cu.errors.die $CU_ERROR_INVALID_ARGUMENT "Storage directory path cannot be empty"
 
-persistent_kv_installation="$(which _cu.persistent_kv)" || { echo "Persistent KV is not installed." >&2; exit 1; }
-installation_path="$(dirname "${persistent_kv_installation}")" || { echo "Could not identify installation path." >&2; exit 1; }
+persistent_kv_installation="$(which _cu.persistent_kv)" || cu.errors.die $CU_ERROR_COMMAND_NOT_FOUND "Persistent KV is not installed."
+installation_path="$(dirname "${persistent_kv_installation}")" || cu.errors.die $CU_ERROR "Could not identify installation path."
 
 existing_config_installation="$(which _cu.persistent_kv.configs)"
 
 [[ -n "${existing_config_installation}" ]] && {
-  [[ "$(dirname "${existing_config_installation}")" == "${installation_path}" ]] || { echo "There is another persistent KV installation at ${existing_config_installation}. Please remove it before proceeding." >&2; exit 1; }
+  [[ "$(dirname "${existing_config_installation}")" == "${installation_path}" ]] || cu.errors.die $CU_ERROR "There is another persistent KV installation at ${existing_config_installation}. Please remove it before proceeding."
 }
 
 exec _cu.persistent_kv.install_configs cu.install "${installation_path}"  "${FLAGS_storage_dir}"

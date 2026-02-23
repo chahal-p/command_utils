@@ -50,8 +50,7 @@ while [[ $# -gt 0 ]]; do
       FLAGS_enable_fraction="$val"
       ;;
     -*)
-      echo "Unrecognized arguments: $arg" >&2
-      exit 2
+      cu.errors.die_usage "Unrecognized arguments: $arg"
       ;;
     *)
       input+=("$arg")

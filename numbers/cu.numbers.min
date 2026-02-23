@@ -5,7 +5,7 @@ source cu.errors_lib.bash
 m=$(getconf INT_MAX)
 for x in "$@"
 do
-  cu.numbers.is_number $x || { cu.errors.echo "Input should be only numbers"; exit 1; }
+  cu.numbers.is_number $x || cu.errors.die $CU_ERROR_INVALID_ARGUMENT "Input should be only numbers"
   [ $x -lt $m ] && m=$x
 done
 echo -n "$m"

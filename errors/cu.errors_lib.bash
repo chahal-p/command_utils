@@ -17,9 +17,14 @@ function cu.errors.echo() {
 }
 
 function cu.errors.die() {
-  local exit_code=${1:-$CU_ERROR}
-  shift
-  cu.errors.echo "${@}"
+  local exit_code=$?
+  if [[ ${#@} -gt 0 ]]; then
+    if [[ ${1} =~ ^[0-9]+$ ]]; then
+      exit_code=${1}
+      shift
+    fi
+    cu.errors.echo "${@}"
+  fi
   exit $exit_code
 }
 
