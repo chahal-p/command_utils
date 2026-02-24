@@ -30,7 +30,7 @@ done
 
 if [[ -n "${FLAGS_interval}" ]]; then
   [[ ${FLAGS_interval} =~ ^[0-9]+$ ]] || { printf 'Interval must be a positive integer\n' >&2; exit 1; }
-  [[ ${FLAGS_interval} -lt 60 ]] && { printf 'Interval must be at least 60 seconds\n' >&2; exit 1; }
+  [[ ${FLAGS_interval} -lt 30 ]] && { printf 'Interval must be at least 30 seconds\n' >&2; exit 1; }
 fi
 
 user="$(whoami)"
