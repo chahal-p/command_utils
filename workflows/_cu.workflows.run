@@ -39,7 +39,6 @@ function acquire_worker_id_lock() {
   cu.lock --fd 201 --timeout 0 2>/dev/null
 }
 acquire_worker_id_lock || { log_error "Worker ${WORKER_ID} is busy"; exit 1; }
-log_info "Acquired lock for worker ${WORKER_ID}"
 ##################################################
 
 NAMESPACE_PREFIX="_cu_workflows"
