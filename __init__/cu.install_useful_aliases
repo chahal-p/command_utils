@@ -19,6 +19,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+complete_commands=()
+
 cu.install_alias bin-to-hex=cu.bin-to-hex || exit
 cu.install_alias cat-which=cu.cat.which || exit
 cu.install_alias copy-to-clipboard=cu.copy-to-clipboard || exit
@@ -31,39 +33,40 @@ cu.install_alias vim-which=cu.vim.which || exit
 
 ############ Date ############
 
-echo 'complete -F _complete_cu.date.from-epoch date-from-epoch' | cu.persistent_source.add --sh bash -n _complete_date-from-epoch -f -
-cu.install_alias date-from-epoch=cu.date.from-epoch || exit
+complete_commands+=('complete -F _complete_cu.date.from-epoch date-from-epoch')
 
-echo 'complete -F _complete_cu.date.to-epoch date-to-epoch' | cu.persistent_source.add --sh bash -n _complete_date-to-epoch -f -
+complete_commands+=('complete -F _complete_cu.date.to-epoch date-to-epoch')
 cu.install_alias date-to-epoch=cu.date.to-epoch || exit
 
 ############ Openssl ############
-echo 'complete -F _complete_cu.openssl.convert-x509-der-to-pem openssl-convert-x509-der-to-pem' | cu.persistent_source.add --sh bash -n _complete_openssl-convert-x509-der-to-pem -f -
+complete_commands+=('complete -F _complete_cu.openssl.convert-x509-der-to-pem openssl-convert-x509-der-to-pem')
 cu.install_alias openssl-convert-x509-der-to-pem=cu.openssl.convert-x509-der-to-pem || exit
 
-echo 'complete -F _complete_cu.openssl.convert-x509-pem-to-der openssl-convert-x509-pem-to-der' | cu.persistent_source.add --sh bash -n _complete_openssl-convert-x509-pem-to-der -f -
+complete_commands+=('complete -F _complete_cu.openssl.convert-x509-pem-to-der openssl-convert-x509-pem-to-der')
 cu.install_alias openssl-convert-x509-pem-to-der=cu.openssl.convert-x509-pem-to-der || exit
 
-echo 'complete -F _complete_cu.openssl.decode-asn1 openssl-decode-asn1' | cu.persistent_source.add --sh bash -n _complete_openssl-decode-asn1 -f -
+complete_commands+=('complete -F _complete_cu.openssl.decode-asn1 openssl-decode-asn1')
 cu.install_alias openssl-decode-asn1=cu.openssl.decode-asn1 || exit
 
-echo 'complete -F _complete_cu.openssl.decode-cert openssl-decode-cert' | cu.persistent_source.add --sh bash -n _complete_openssl-decode-cert -f -
+complete_commands+=('complete -F _complete_cu.openssl.decode-cert openssl-decode-cert')
 cu.install_alias openssl-decode-cert=cu.openssl.decode-cert || exit
 
-echo 'complete -F _complete_cu.openssl.decode-crl openssl-decode-crl' | cu.persistent_source.add --sh bash -n _complete_openssl-decode-crl -f -
+complete_commands+=('complete -F _complete_cu.openssl.decode-crl openssl-decode-crl')
 cu.install_alias openssl-decode-crl=cu.openssl.decode-crl || exit
 
-echo 'complete -F _complete_cu.openssl.decode-csr openssl-decode-csr' | cu.persistent_source.add --sh bash -n _complete_openssl-decode-csr -f -
+complete_commands+=('complete -F _complete_cu.openssl.decode-csr openssl-decode-csr')
 cu.install_alias openssl-decode-csr=cu.openssl.decode-csr || exit
 
-echo 'complete -F _complete_cu.openssl.decode-key openssl-decode-key' | cu.persistent_source.add --sh bash -n _complete_openssl-decode-key -f -
+complete_commands+=('complete -F _complete_cu.openssl.decode-key openssl-decode-key')
 cu.install_alias openssl-decode-key=cu.openssl.decode-key || exit
 
-echo 'complete -F _complete_cu.openssl.publickey-extract openssl-publickey-extract' | cu.persistent_source.add --sh bash -n _complete_openssl-publickey-extract -f -
+complete_commands+=('complete -F _complete_cu.openssl.publickey-extract openssl-publickey-extract')
 cu.install_alias openssl-publickey-extract=cu.openssl.publickey-extract || exit
 
-echo 'complete -F _complete_cu.openssl.signature-extract openssl-signature-extract' | cu.persistent_source.add --sh bash -n _complete_openssl-signature-extract -f -
+complete_commands+=('complete -F _complete_cu.openssl.signature-extract openssl-signature-extract')
 cu.install_alias openssl-signature-extract=cu.openssl.signature-extract || exit
 
-echo 'complete -F _complete_cu.openssl.tbs-extract openssl-tbs-extract' | cu.persistent_source.add --sh bash -n _complete_openssl-tbs-extract -f -
+complete_commands+=('complete -F _complete_cu.openssl.tbs-extract openssl-tbs-extract')
 cu.install_alias openssl-tbs-extract=cu.openssl.tbs-extract || exit
+
+printf '%s\n' "${complete_commands[@]}" | cu.persistent_source.add --sh bash -n _complete_useful_aliases -f -
