@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+NAMESPACE_PREFIX="_cu_workflows"
+
 usage='usage: workflows.add -n  [-h] -- <workflow command and args...>'
 
 internal_args=()

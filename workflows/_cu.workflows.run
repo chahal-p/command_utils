@@ -1,34 +1,54 @@
 #!/usr/bin/env bash
 
-NAMESPACE_PREFIX="_cu_workflows"
-
-WORKER_ID="$$"
-[[ -n "${1}" ]] && WORKER_ID="${WORKER_ID}-${1}"
-
 [[ ":$PATH:" == *":/usr/local/bin:"* ]] || export PATH="/usr/local/bin:$PATH"
 [[ ":$PATH:" == *":$HOME/.local/bin:"* ]] || export PATH="$HOME/.local/bin:$PATH"
 
-USER="$(whoami)"
-[[ -n "${USER}" ]] || { log_error "Failed to get user name"; exit 1; }
+######### Worker ID ##############################
+PID="$$"
+WORKER_ID="${1}"
+[[ -n "${WORKER_ID}" ]] || { echo "No worker ID provided" >&2; exit 1; }
+##################################################
 
-export USER
-
+######### Logging functions ######################
 function log_info() {
-  echo "[INFO] [WORKER ${WORKER_ID}] $(cu.date) $1"
+  echo "[INFO] [WORKER ${PID}-${WORKER_ID}] $(cu.date) $1"
 }
 
 function log_error() {
-  echo "[ERROR] [WORKER ${WORKER_ID}] $(cu.date) $1" >&2
+  echo "[ERROR] [WORKER ${PID}-${WORKER_ID}] $(cu.date) $1" >&2
 }
+##################################################
 
+######### Initialize user env ####################
+USER="$(whoami)"
+[[ -n "${USER}" ]] || { log_error "Failed to get user name"; exit 1; }
+export USER
+##################################################
+
+######### Lock directory setup ###################
 LOCK_DIR="/tmp/cu_workflows_locks_${USER}"
 [[ -d "${LOCK_DIR}" ]] || mkdir -m 777 -p "${LOCK_DIR}" || exit
+##################################################
+
+######### Acquire worker ID lock #################
+function acquire_worker_id_lock() {
+  local lock_file
+  lock_file="${LOCK_DIR}/worker_${WORKER_ID}.lock"
+  (umask 000 && touch "${lock_file}") || { log_error "Failed to create lock file for worker ${WORKER_ID}"; exit 1; }
+  exec 201<"${lock_file}"
+  cu.lock --fd 201 --timeout 0 2>/dev/null
+}
+acquire_worker_id_lock || { log_error "Worker ${WORKER_ID} is busy"; exit 1; }
+log_info "Acquired lock for worker ${WORKER_ID}"
+##################################################
+
+NAMESPACE_PREFIX="_cu_workflows"
 
 function lock_workflow() {
   local name
   local lock_file
   name="$1"
-  lock_file="${LOCK_DIR}/${name}.lock"
+  lock_file="${LOCK_DIR}/workflow_${name}.lock"
   (umask 000 && touch "${lock_file}") || { log_error "Failed to create lock file for workflow ${name}"; exit 1; }
   exec 200<"${lock_file}"
   cu.lock --fd 200 --timeout 0 2>/dev/null
