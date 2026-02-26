@@ -11,11 +11,11 @@ WORKER_ID="${1}"
 
 ######### Logging functions ######################
 function log_info() {
-  echo "[INFO] [WORKER ${PID}-${WORKER_ID}] $(cu.date) $1"
+  echo -e "[INFO] [WORKER ${PID}-${WORKER_ID}] $(cu.date) $1"
 }
 
 function log_error() {
-  echo "[ERROR] [WORKER ${PID}-${WORKER_ID}] $(cu.date) $1" >&2
+  echo -e "[ERROR] [WORKER ${PID}-${WORKER_ID}] $(cu.date) $1" >&2
 }
 ##################################################
 
@@ -108,7 +108,7 @@ function run_workflow() {
     wf_cmd[i]="$(printf '%s' "${wf_cmd[i]}" | base64 -d)"
   done
 
-  "${wf_cmd[@]}"
+  "${wf_cmd[@]}" 2> >(xargs -L 1 echo "[ERROR] [WORKER ${PID}-${WORKER_ID}] $(cu.date)") 1> >(xargs -L 1 echo "[INFO] [WORKER ${PID}-${WORKER_ID}] $(cu.date)")
 }
 
 log_info "Checking for workflows ready to run"
