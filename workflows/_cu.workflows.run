@@ -43,6 +43,10 @@ acquire_worker_id_lock || { log_error "Worker ${WORKER_ID} is busy"; exit 1; }
 
 NAMESPACE_PREFIX="_cu_workflows"
 
+function close_fd_200() {
+  exec 200<&-
+}
+
 function lock_workflow() {
   local name
   local lock_file
@@ -54,7 +58,7 @@ function lock_workflow() {
 }
 
 function unlock_workflow() {
-  exec 200<&-
+  close_fd_200
 }
 
 function workflow_pop() {
@@ -124,7 +128,7 @@ IFS=$'\n' sorted_wf_scheduled=($(printf "%s\n" "${wf_scheduled[@]}" | sort -t: -
 
 for wf_schedule in "${sorted_wf_scheduled[@]}"; do
   wf_name="${wf_schedule%:*}"
-  lock_workflow "$wf_name" || continue
+  lock_workflow "$wf_name" || { close_fd_200; continue; }
   workflow_pop "$wf_name" || { unlock_workflow; continue; }
   log_info "Running workflow ${wf_name}"
   run_workflow "$wf_name"
