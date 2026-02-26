@@ -108,7 +108,7 @@ function run_workflow() {
     wf_cmd[i]="$(printf '%s' "${wf_cmd[i]}" | base64 -d)"
   done
 
-  "${wf_cmd[@]}" 2> >(xargs -L 1 echo "[ERROR] [WORKER ${PID}-${WORKER_ID}] $(cu.date)") 1> >(xargs -L 1 echo "[INFO] [WORKER ${PID}-${WORKER_ID}] $(cu.date)")
+  "${wf_cmd[@]}" 2> >(xargs -L 1 -r echo "[ERROR] [WORKER ${PID}-${WORKER_ID}] $(cu.date)") 1> >(xargs -L 1 -r echo "[INFO] [WORKER ${PID}-${WORKER_ID}] $(cu.date)")
 }
 
 log_info "Checking for workflows ready to run"
