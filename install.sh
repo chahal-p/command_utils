@@ -3,7 +3,7 @@
 if [[ "${BASH_VERSINFO[0]}" -lt 5 ]]
 then
   echo 'bash version 5 or higher is required for command_utils'
-  return
+  exit 1
 fi
 
 IFS=' ' read -r _ python_version <<< $(python3 -V)
@@ -12,7 +12,7 @@ IFS='.' read -r python_version_major python_version_minor python_version_patch <
 if [[ "${python_version_major}" -lt 3 || ("${python_version_major}" -eq 3 && "${python_version_minor}" -lt 11) ]]
 then
   echo 'python version 3.11 or higher is required for command_utils'
-  return
+  exit 1
 fi
 
 function error_echo() {
