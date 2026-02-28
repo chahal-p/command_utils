@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-NAMESPACE_PREFIX="_cu_workflows"
+source _cu.workflows.configs || exit 1
 
 parsed_args=$(pflags parse --name "$(basename "${0}")" ---- \
   -s n -l name -t string --regex "^[a-zA-Z0-9_-]+$" -h "Name of the workflow" ---- "$@") || exit

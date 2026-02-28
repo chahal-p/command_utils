@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-NAMESPACE_PREFIX="_cu_workflows"
+source _cu.workflows.configs || exit 1
 
 usage='usage: workflows.update -n  [-h] -- <workflow command and args...>'
 

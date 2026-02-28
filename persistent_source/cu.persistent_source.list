@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-NAMESPACE_PREFIX="_cu_persistent_source"
+source _cu.persistent_source.configs || exit 1
 
 parsed=$(pflags parse --name "$(basename "$0")" ---- \
   -l sh -t string --allowed bash --allowed zsh --default bash --default zsh -h "Shell type (bash or zsh)" ---- "${@}") || exit

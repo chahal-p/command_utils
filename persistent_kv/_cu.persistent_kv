@@ -50,6 +50,17 @@ function validate_key() {
   [[ "${key}" =~ ^[a-zA-Z0-9_-]+$ ]] || die $CU_ERROR_USAGE "Invalid key: key should match regex ^[a-zA-Z0-9_-]+$"
 }
 
+function acquire_lock() {
+  key_lock_path="${LOCK_DIR}/${namespace}.${key}.lock"
+  (umask 000 && touch "${key_lock_path}") || die $CU_ERROR "Failed to create lock file"
+
+  lock_cmd="flock"
+  cu.is_macos && lock_cmd="lockf"
+
+  exec 200<"${key_lock_path}"
+  $lock_cmd 200
+}
+
 ########## BEGIN list subcommand ##########
 
 if [[ "${subcommand}" == "list" ]]; then
@@ -80,21 +91,11 @@ fi
 
 key_file="${STORAGE_DIR}/${namespace}.${key}"
 
-key_lock_path="${LOCK_DIR}/${namespace}.${key}.lock"
-(umask 000 && touch "${key_lock_path}") || die $CU_ERROR "Failed to create lock file"
-
-lock_cmd="flock"
-cu.is_macos && lock_cmd="lockf"
-
-# BEGIN Critical section
-# Acquire lock
-exec 200<"${key_lock_path}"
-$lock_cmd 200
-
 ########## BEGIN get subcommand ##########
 if [[ "${subcommand}" == "get" ]]; then
   validate_namespace
   validate_key
+  acquire_lock
   [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
   [ -r "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable"
   cat "${key_file}" || die $CU_ERROR "Failed to get value for key ${key} in namespace ${namespace}"
@@ -106,6 +107,7 @@ fi
 if [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
   validate_namespace
   validate_key
+  acquire_lock
   [ -w "${STORAGE_DIR}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: $USER does not have permission to write in storage directory '${STORAGE_DIR}'"
   if [ -f "${key_file}" ]; then
     [ "${subcommand}" == "set" ] && die $CU_ERROR_ALREADY_EXISTS "Key ${key} in namespace ${namespace} already exists"
@@ -122,6 +124,7 @@ fi
 if [[ "${subcommand}" == "delete" ]]; then
   validate_namespace
   validate_key
+  acquire_lock
   [ -w "${STORAGE_DIR}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: $USER does not have permission to delete in storage directory '${STORAGE_DIR}'"
   [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
   [ -w "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not deletable"
@@ -134,6 +137,7 @@ fi
 if [[ "${subcommand}" == "chmod" ]]; then
   validate_namespace
   validate_key
+  acquire_lock
   [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
   chmod "${mode}" "${key_file}" || die $CU_ERROR "Failed to set mode for key ${key} in namespace ${namespace}"
   exit
@@ -144,6 +148,7 @@ fi
 if [[ "${subcommand}" == "chown" ]]; then
   validate_namespace
   validate_key
+  acquire_lock
   [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
   chown "${owner_group}" "${key_file}" || die $CU_ERROR "Failed to set owner/group for key ${key} in namespace ${namespace}"
   exit
@@ -153,5 +158,3 @@ fi
 usage
 [[ -z "${subcommand}" ]] && die $CU_ERROR_USAGE "No subcommand specified"
 die $CU_ERROR_USAGE "Unknown subcommand: ${subcommand}"
-
-# END Critical section

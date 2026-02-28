@@ -19,6 +19,8 @@ function log_error() {
 }
 ##################################################
 
+source _cu.workflows.configs || { log_error "Failed to source _cu.workflows.configs"; exit 1; }
+
 ######### Initialize user env ####################
 USER="$(whoami)"
 [[ -n "${USER}" ]] || { log_error "Failed to get user name"; exit 1; }
@@ -40,8 +42,6 @@ function acquire_worker_id_lock() {
 }
 acquire_worker_id_lock || { log_error "Worker ${WORKER_ID} is busy"; exit 1; }
 ##################################################
-
-NAMESPACE_PREFIX="_cu_workflows"
 
 function close_fd_200() {
   exec 200<&-

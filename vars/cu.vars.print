@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-NAMESPACE_PREFIX="_cu_vars"
+source _cu.vars.configs || exit 1
 
 user="$(whoami)"
 namespace="${NAMESPACE_PREFIX}_${user}"

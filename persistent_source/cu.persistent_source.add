@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-NAMESPACE_PREFIX="_cu_persistent_source"
+source _cu.persistent_source.configs || exit 1
 
 parsed=$(pflags parse --name "$(basename "$0")" ---- \
   -s f -l file -t string -h "File to add (Use - for stdin)" -- \
