@@ -61,15 +61,12 @@ done
 
 install=(
 "__init__"
-"arrays"
-"checks"
 "command"
 "conversion"
 "copy"
 "cu_install"
 "date"
 "errors"
-"input"
 "install_alias"
 "numbers"
 "openssl"
