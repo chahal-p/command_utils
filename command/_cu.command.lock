@@ -15,6 +15,6 @@ exec 200<"$file"
 args=()
 [[ -n $timeout ]] && args+=(--timeout "$timeout")
 
-cu.lock --fd 200 "${args[@]}"
+cu.lock --fd 200 "${args[@]}" || cu.errors.die $CU_ERROR "Failed to acquire lock"
 
 exec "$@"
