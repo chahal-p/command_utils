@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source _cu.workflows.configs || exit 1
+source _cu.workflows.common || exit 1
 
 usage='usage: workflows.update -n  [-h] -- <workflow command and args...>'
 
@@ -35,7 +35,7 @@ while [[ $# -gt 0 ]]; do
     *)
       arg_name="${1#-}"
       arg_name="${arg_name#-}"
-      eval "${arg_name}='${2//\'/\'\\\'\'}'"
+      eval "FLAGS_${arg_name}='${2//\'/\'\\\'\'}'"
       shift 2
       ;;
   esac
@@ -43,7 +43,5 @@ done
 
 [ -z "${workflow_command_encoded}" ] && { echo "No workflow command provided" >&2; exit 2; }
 
-user="$(whoami)"
-
-printf '%s' "${workflow_command_encoded}" | _cu.persistent_kv set_overwrite ${NAMESPACE_PREFIX}_${user} "${name}"
+set_workflow_cmd "${FLAGS_name}" "${workflow_command_encoded}"
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source _cu.workflows.configs || exit 1
+source _cu.workflows.common || exit 1
 
 parsed_args=$(pflags parse --name "$(basename "${0}")" ---- \
   -s n -l name -t string --regex "^[a-zA-Z0-9_-]+$" -h "Name of the workflow" ---- "$@") || exit
@@ -23,9 +23,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-user="$(whoami)"
-
-wf_encoded_cmd="$(_cu.persistent_kv get ${NAMESPACE_PREFIX}_${user} "${FLAGS_name}" 2>/dev/null)"
+wf_encoded_cmd="$(get_workflow_cmd "${FLAGS_name}")"
 code=$?
 [ $code -eq 0 ] || { [ $code -eq 40 ] && { echo "Workflow ${FLAGS_name} not found" >&2; exit $code; } || exit $code; }
 

@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+NAMESPACE_PREFIX="__cd97e6__wfs"
+
+USER="$(whoami)"
+[[ -n "${USER}" ]] || { echo "Failed to get user name" >&2; exit 1; }
+export USER
+
+function get_workflow_cmd() {
+  _cu.persistent_kv get ${NAMESPACE_PREFIX}_${USER} "$1"
+}
+
+function get_workflow_interval() {
+  _cu.persistent_kv get ${NAMESPACE_PREFIX}_intervals_${USER} "$1"
+}
+
+function get_workflow_scheduled() {
+  _cu.persistent_kv get ${NAMESPACE_PREFIX}_scheduled_${USER} "$1"
+}
+
+function set_workflow_cmd() {
+  printf '%s' "$2" | _cu.persistent_kv set_overwrite ${NAMESPACE_PREFIX}_${USER} "$1"
+}
+
+function set_workflow_interval() {
+  printf '%s' "$2" | _cu.persistent_kv set_overwrite ${NAMESPACE_PREFIX}_intervals_${USER} "$1"
+}
+
+function set_workflow_scheduled() {
+  printf '%s' "$2" | _cu.persistent_kv set_overwrite ${NAMESPACE_PREFIX}_scheduled_${USER} "$1"
+}
+
+function list_workflows_scheduled() {
+  _cu.persistent_kv list ${NAMESPACE_PREFIX}_scheduled_${USER}
+}
+
+function delete_workflow_scheduled() {
+  _cu.persistent_kv delete ${NAMESPACE_PREFIX}_scheduled_${USER} "$1"
+}
+
+function delete_workflow_cmd() {
+  _cu.persistent_kv delete ${NAMESPACE_PREFIX}_${USER} "$1"
+}
+
+function delete_workflow_interval() {
+  _cu.persistent_kv delete ${NAMESPACE_PREFIX}_intervals_${USER} "$1"
+}

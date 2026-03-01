@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source _cu.workflows.configs || exit 1
+source _cu.workflows.common || exit 1
 
 parsed_args=$(pflags parse --name "$(basename "${0}")" ---- \
   -s n -l name -t string --regex "^[a-zA-Z0-9_-]+$" -h "Name of the workflow" ---- "$@") || exit
@@ -17,18 +17,16 @@ while [[ $# -gt 0 ]]; do
     *)
       arg_name="${1#-}"
       arg_name="${arg_name#-}"
-      eval "${arg_name}='${2//\'/\'\\\'\'}'"
+      eval "FLAGS_${arg_name}='${2//\'/\'\\\'\'}'"
       shift 2
       ;;
   esac
 done
 
-user="$(whoami)"
-
-_cu.persistent_kv delete ${NAMESPACE_PREFIX}_scheduled_${user} "${name}" 2>/dev/null
+delete_workflow_scheduled "${FLAGS_name}"
 code=$?
-[[ $code -eq 0 ]] || [[ $code -eq 40 ]] || { printf 'Failed to delete scheduled workflow %s\n' "${name}" >&2; exit $code; }
+[[ $code -eq 0 ]] || [[ $code -eq 40 ]] || { printf 'Failed to delete scheduled workflow %s\n' "${FLAGS_name}" >&2; exit $code; }
 
-_cu.persistent_kv delete ${NAMESPACE_PREFIX}_intervals_${user} "${name}" 2>/dev/null
+delete_workflow_interval "${FLAGS_name}"
 code=$?
-[[ $code -eq 0 ]] || [[ $code -eq 40 ]] || { printf 'Failed to delete interval for workflow %s\n' "${name}" >&2; exit $code; }
+[[ $code -eq 0 ]] || [[ $code -eq 40 ]] || { printf 'Failed to delete interval for workflow %s\n' "${FLAGS_name}" >&2; exit $code; }

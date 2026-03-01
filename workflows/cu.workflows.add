@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source _cu.workflows.configs || exit 1
+source _cu.workflows.common || exit 1
 
 usage='usage: workflows.add -n  [-h] -- <workflow command and args...>'
 
@@ -43,9 +43,7 @@ done
 
 [ -z "${workflow_command_encoded}" ] && { echo "No workflow command provided" >&2; exit 2; }
 
-user="$(whoami)"
-
-printf '%s' "${workflow_command_encoded}" | _cu.persistent_kv set ${NAMESPACE_PREFIX}_${user} "${name}" 2>/dev/null
+set_workflow_cmd "${name}" "${workflow_command_encoded}"
 code=$?
 [ $code -eq 41 ] && { echo "Workflow ${name} already exists" >&2; exit $code; } || exit $code
 

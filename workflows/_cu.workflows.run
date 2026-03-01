@@ -19,12 +19,8 @@ function log_error() {
 }
 ##################################################
 
-source _cu.workflows.configs || { log_error "Failed to source _cu.workflows.configs"; exit 1; }
-
-######### Initialize user env ####################
-USER="$(whoami)"
-[[ -n "${USER}" ]] || { log_error "Failed to get user name"; exit 1; }
-export USER
+######### Load common library ####################
+source _cu.workflows.common || { log_error "Failed to source _cu.workflows.common"; exit 1; }
 ##################################################
 
 ######### Lock directory setup ###################
@@ -65,7 +61,7 @@ function workflow_pop() {
   local name
   local scheduled_at
   name="$1"
-  scheduled_at="$(_cu.persistent_kv get ${NAMESPACE_PREFIX}_scheduled_${USER} "$name" 2>/dev/null)" || return 1
+  scheduled_at="$(get_workflow_scheduled "$name")" || return 1
   [[ ${scheduled_at} -le $(cu.date.to-epoch --out_nanoseconds) ]] || return 1
   return 0
 }
@@ -76,10 +72,10 @@ function schedule_next_workflow() {
   local code
   local scheduled_at
   name="$1"
-  interval="$(_cu.persistent_kv get ${NAMESPACE_PREFIX}_intervals_${USER} "${name}" 2>/dev/null)"
+  interval="$(get_workflow_interval "$name")"
   code=$?
   if [ $code -eq 40 ]; then
-    _cu.persistent_kv delete ${NAMESPACE_PREFIX}_scheduled_${USER} "$name" 2>/dev/null
+    delete_workflow_scheduled "$name"
     return $code
   fi
   if [ $code -ne 0 ]; then
@@ -88,7 +84,7 @@ function schedule_next_workflow() {
   fi
   nanoseconds_interval="$(( interval * 1000000000 ))"
   scheduled_at="$(( $(cu.date.to-epoch --out_nanoseconds) + nanoseconds_interval ))"
-  printf '%s' "$scheduled_at" | _cu.persistent_kv set_overwrite ${NAMESPACE_PREFIX}_scheduled_${USER} "$name"
+  set_workflow_scheduled "$name" "$scheduled_at"
 }
 
 function run_workflow() {
@@ -97,7 +93,7 @@ function run_workflow() {
   local code
   local wf_cmd
   name="$1"
-  wf_encoded_cmd="$(_cu.persistent_kv get ${NAMESPACE_PREFIX}_${USER} "${name}" 2>/dev/null)"
+  wf_encoded_cmd="$(get_workflow_cmd "$name")"
   code=$?
   [ $code -eq 0 ] || { [ $code -eq 40 ] && { log_error "Workflow ${name} not found"; exit $code; } || exit $code; }
 
@@ -115,10 +111,10 @@ log_info "Checking for workflows ready to run"
 
 wf_scheduled=()
 
-read -d '\n' -a wfs < <(_cu.persistent_kv list ${NAMESPACE_PREFIX}_scheduled_${USER} 2>/dev/null)
+read -d '\n' -a wfs < <(list_workflows_scheduled)
 
 for wf_name in "${wfs[@]}"; do
-  wf_at=$(_cu.persistent_kv get ${NAMESPACE_PREFIX}_scheduled_${USER} "${wf_name}" 2>/dev/null)
+  wf_at="$(get_workflow_scheduled "$wf_name")"
   code=$?
   [ $code -eq 0 ] || { [ $code -eq 40 ] && continue || { log_error "Failed to get workflow scheduled time for ${wf_name}"; exit $code; } }
   [[ ${wf_at} -le $(cu.date.to-epoch --out_nanoseconds) ]] && wf_scheduled+=("${wf_name}:${wf_at}")
