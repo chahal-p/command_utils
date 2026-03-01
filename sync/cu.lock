@@ -2,7 +2,7 @@
 
 function usage() {
   cat <<EOF
-Usage: $0 [options]
+Usage: $(basename "$0") [options]
 
 Options:
       --fd       File descriptor

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+source cu.errors_lib.bash
+
+[[ $# -lt 3 ]] && { echo "Usage: $(basename "$0") <fd> <timeout> <command> [args...]"; exit 1; }
+
+file="$1"
+timeout="$2"
+shift 2
+
+[ -f "$file" ] || cu.errors.die_not_found "Lock file does not exist"
+[ -r "$file" ] || cu.errors.die $CU_ERROR_PERMISSION_DENIED "Lock file is not readable"
+exec 200<"$file"
+
+args=()
+[[ -n $timeout ]] && args+=(--timeout "$timeout")
+
+cu.lock --fd 200 "${args[@]}"
+
+exec "$@"

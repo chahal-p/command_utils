@@ -18,7 +18,11 @@ done
 parsed_args=$(pflags parse --name "$(basename "$0")" --usage "$(basename "$0") [options...] -- <command> [args...]" ---- \
   -s c -l confirm -t bool -h "Show command and ask for confirmation before running" -- \
   -s v -l verbose -t bool -h "Show command and run" -- \
+  -s t -l timeout -t number --default '' -h "Timeout for the command. Once the timeout is reached, the specified signal will be sent to the command" -- \
+  -s s -l signal -t string --default 'SIGKILL' -h "Signal to send to the command when the timeout is reached. Default is SIGKILL" -- \
+  -s k -l kill_after -t number --default '' -h "Time to wait after sending the signal before killing the command. If not specified, wait indefinitely for the signal to be processed" -- \
   -l lock_file -t string --default '' -h "Lock file to use for locking. If not specified, no locking will be acquired\n By default, the lock is exclusive" -- \
+  -l lock_timeout -t number --default '' -h "Timeout for acquiring the lock. If not specified, wait indefinitely for the lock" -- \
   ---- "${internal_args[@]}") || exit
 
 eval set -- "${parsed_args}"
@@ -81,11 +85,12 @@ function format_command() {
 
 [ "$FLAGS_confirm" == "true" ] && { cu.confirm "Confirm command" || exit; }
 
-if [[ -n "$FLAGS_lock_file" ]]; then
-  [ -f "$FLAGS_lock_file" ] || cu.errors.die_not_found "Lock file does not exist"
-  [ -r "$FLAGS_lock_file" ] || cu.errors.die $CU_ERROR_PERMISSION_DENIED "Lock file is not readable"
-  exec 200<"$FLAGS_lock_file"
-  cu.lock --fd 200 || cu.errors.die $CU_ERROR "Failed to acquire lock"
+if [[ -n "$FLAGS_timeout" && -n "$FLAGS_lock_file" ]]; then
+  exec _cu.command.timeout "$FLAGS_timeout" "$FLAGS_signal" "$FLAGS_kill_after" _cu.command.lock "$FLAGS_lock_file" "$FLAGS_lock_timeout" "${cmd_and_args[@]}"
+elif [[ -n "$FLAGS_timeout" ]]; then
+  exec _cu.command.timeout "$FLAGS_timeout" "$FLAGS_signal" "$FLAGS_kill_after" "${cmd_and_args[@]}"
+elif [[ -n "$FLAGS_lock_file" ]]; then
+  exec _cu.command.lock "$FLAGS_lock_file" "$FLAGS_lock_timeout" "${cmd_and_args[@]}"
+else
+  exec "${cmd_and_args[@]}"
 fi
-
-command "${cmd_and_args[@]}"
