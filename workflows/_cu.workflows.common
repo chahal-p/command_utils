@@ -34,6 +34,14 @@ function list_workflows_scheduled() {
   _cu.persistent_kv list ${NAMESPACE_PREFIX}_scheduled_${USER}
 }
 
+function list_workflows_cmd() {
+  _cu.persistent_kv list ${NAMESPACE_PREFIX}_${USER}
+}
+
+function list_workflows_interval() {
+  _cu.persistent_kv list ${NAMESPACE_PREFIX}_intervals_${USER}
+}
+
 function delete_workflow_scheduled() {
   _cu.persistent_kv delete ${NAMESPACE_PREFIX}_scheduled_${USER} "$1"
 }

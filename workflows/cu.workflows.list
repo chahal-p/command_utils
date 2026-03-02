@@ -4,7 +4,7 @@ source _cu.workflows.common || exit 1
 
 table=( -- "Name" "Next Scheduled" "$(printf "%s\n %s" "Recurring Interval" "(seconds)")" )
 
-for name in $(list_workflow_cmds); do
+for name in $(list_workflows_cmd); do
   table+=(--)
   table+=("${name}")
   scheduled=$(get_workflow_scheduled "${name}")
