@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+
+import argparse
+import base64
+import json
+import sys
+
+CU_ERROR_NOT_FOUND = 40
+
+def write_stdout(s):
+    sys.stdout.write(s)
+    sys.stdout.flush()
+
+def write_encoded_map(configmap):
+    write_stdout(base64.b64encode(json.dumps(configmap).encode('utf-8')).decode('utf-8'))
+
+def main():
+    parser = argparse.ArgumentParser(description='Configmap utility')
+    subparsers = parser.add_subparsers(dest='command', required=True)
+
+    parser_get = subparsers.add_parser('get', help='Get a value from the configmap')
+    parser_get.add_argument('-c', '--configmap', metavar='string', required=True, help='Input base64 encoded string')
+    parser_get.add_argument('-k', '--key', metavar='string', required=True, help='Key to get')
+
+    parser_set = subparsers.add_parser('set', help='Set a value in the configmap')
+    parser_set.add_argument('-c', '--configmap', metavar='string', required=True, help='Input base64 encoded string')
+    parser_set.add_argument('-k', '--key', metavar='string', required=True, help='Key to set')
+    parser_set.add_argument('-v', '--value', metavar='string', required=True, help='Value to set')
+
+    parser_delete = subparsers.add_parser('delete', help='Delete a value from the configmap')
+    parser_delete.add_argument('-c', '--configmap', metavar='string', required=True, help='Input base64 encoded string')
+    parser_delete.add_argument('-k', '--key', metavar='string', required=True, help='Key to delete')
+
+    args = parser.parse_args()
+
+    configmap = {}
+    if args.configmap:
+        configmap = json.loads(base64.b64decode(args.configmap))
+    if args.command == 'get':
+        if args.key not in configmap:
+            exit(CU_ERROR_NOT_FOUND)
+        write_stdout(configmap[args.key])
+    elif args.command == 'set':
+        configmap[args.key] = args.value
+        write_encoded_map(configmap)
+    elif args.command == 'delete':
+        if args.key not in configmap:
+            write_encoded_map(configmap)
+            exit(CU_ERROR_NOT_FOUND)
+        del configmap[args.key]
+        if len(configmap.keys()) == 0:
+            exit(0)
+        write_encoded_map(configmap)
+
+if __name__ == '__main__':
+    main()
