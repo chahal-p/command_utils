@@ -9,8 +9,9 @@ Options:
   -k, --key         Key
   -v, --value       Value (default: stdin)
   -f, --force       Overwrite existing entry (default: false)
-      --etag        Etag to match (default: none, only allowed if -f is set)
+      --etag        Etag to match (sha256 of existing value)
                     If not set, existing value is set without pre-condition check
+                    (Only allowed if -f/--force is set)
   -h, --help        show this help message and exit
 EOF
 }
