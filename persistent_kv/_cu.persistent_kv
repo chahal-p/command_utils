@@ -9,6 +9,7 @@ namespace="$2"
 key="$3"
 mode="$4"
 owner_group="$5"
+etag="$6"
 
 HIDDEN_NAMESPACE_PREFIX="__cd97e6__"
 
@@ -21,7 +22,7 @@ function die() {
 
 function usage() {
   [ "$FLAGS_CU_PERSISTENT_KV_DEBUG_MODE" == "true" ] || return 0
-  echo "Usage: $(basename "${0}") <subcommand> <namespace> <key>"
+  echo "Usage: $(basename "${0}") <subcommand> <namespace> <key> [mode] [owner_group] [etag]"
   echo "Subcommands:"
   echo "  list"
   echo "  get"
@@ -114,9 +115,13 @@ if [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
   if [ -f "${key_file}" ]; then
     [ "${subcommand}" == "set" ] && die $CU_ERROR_ALREADY_EXISTS "Key ${key} in namespace ${namespace} already exists"
   else
+    [[ -n "${etag}" ]] && die $CU_ERROR_ETAG_MISMATCH "Etag provided for non-existent key ${key} in namespace ${namespace}"
     (umask 137 && touch "${key_file}") || die $CU_ERROR "Failed to create key ${key} in namespace ${namespace}"
   fi
   [ -w "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not writable"
+  if [[ -n "${etag}" ]]; then
+    cat "${key_file}" | cu.sha256sum | grep -q "^${etag}$" || die $CU_ERROR_ETAG_MISMATCH "Etag mismatch for key ${key} in namespace ${namespace}"
+  fi
   cat - > "${key_file}" || die $CU_ERROR "Failed to set value for key ${key} in namespace ${namespace}"
   exit
 fi
