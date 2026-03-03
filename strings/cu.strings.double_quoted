@@ -1,2 +1,16 @@
 #!/usr/bin/env bash
-printf '"%s"' "${1//\"/\\\"}"
+
+function double_quoted() {
+  printf '"%s"' "${1//\"/\\\"}"
+}
+
+[[ $# -eq 0 ]] && exit 0
+
+printf "%s" "$(double_quoted "$1")"
+shift
+
+for arg in "$@"; do
+    printf " %s" "$(double_quoted "$arg")"
+done
+
+
