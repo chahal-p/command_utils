@@ -7,10 +7,8 @@ function usage() {
   echo "  <command>: The command to run on each line of the input from stdin"
 }
 
-if [[ $# -eq 0 || "$1" == "-h" || "$1" == "--help" ]]; then
-  usage
-  cu.errors.die_usage
-fi
+[[ "$1" == "-h" || "$1" == "--help" ]] && { usage; exit 0; }
+[[ $# -eq 0 ]] && { usage >&2; cu.errors.die_usage; }
 
 while IFS= read -r line; do
   cat <<< "$line" | "$@"

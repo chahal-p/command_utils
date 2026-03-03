@@ -11,4 +11,4 @@ pbash.args.extract -l 'inform:' -o inform -- "$@" || { read -p "--inform (der/pe
 outfile=()
 pbash.args.extract -s 'o:' -l 'outfile:' -o outfile -- "$@" || { read -p "-o|--outfile (file path): "; outfile=$REPLY; }
 
-cu.eval -v -- openssl asn1parse -inform "$inform" -in "$file" -out "$outfile" -strparse 4 -noout
+cu.command -v -- openssl asn1parse -inform "$inform" -in "$file" -out "$outfile" -strparse 4 -noout
