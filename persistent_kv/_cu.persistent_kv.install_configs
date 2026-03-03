@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-source cu.errors_lib.bash || exit
-
 installer="$1"
 installation_path="$2"
 storage_path="$3"
@@ -10,7 +8,7 @@ storage_path="$3"
 path="$(realpath "${storage_path}")" || exit
 storage_dir="${path%/}"
 
-[[ -d "${storage_dir}" ]] || cu.errors.die_not_found "Storage directory ${storage_dir} does not exist."
+[[ -d "${storage_dir}" ]] || { echo "Storage directory ${storage_dir} does not exist." >&2; exit 40; }
 
 perms="$(ls -ld "${storage_dir}")"
 
