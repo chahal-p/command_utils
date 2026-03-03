@@ -62,7 +62,6 @@ done
 install=(
 "__init__"
 "command"
-"conversion"
 "copy"
 "cu_install"
 "date"
