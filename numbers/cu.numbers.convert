@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+
+function usage() {
+  echo "Usage: cu.numbers.convert <subcommand> <input>"
+  echo ""
+  echo "Subcommands:"
+  echo "  ascii-to-char <ascii>"
+  echo "  bin-to-dec <binary>"
+  echo "  bin-to-hex <binary>"
+  echo "  char-to-ascii <char>"
+  echo "  dec-to-bin <decimal>"
+  echo "  dec-to-hex <decimal>"
+  echo "  dec-to-oct <decimal>"
+  echo "  hex-to-bin <hex>"
+  echo "  hex-to-dec <hex>"
+  echo "  oct-to-bin <octal>"
+  echo "  oct-to-dec <octal>"
+}
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+[[ $# -ne 2 ]] && { usage >&2; exit 2; }
+
+subcommand=$1
+shift
+case $subcommand in
+  ascii-to-char)
+    printf "\x$(printf %x "$1")"
+    ;;
+  bin-to-dec)
+    cu.python.exec "
+b = '$1'
+print(int(b, base=2))
+"
+    ;;
+  bin-to-hex)
+    cu.python.exec "
+b = '$1'
+if (len(b) % 4) != 0:
+  b = ('0' * (4 - len(b) % 4)) + b
+h = []
+for i in range(0, len(b), 4):
+  x = b[i:i + 4]
+  h.append(hex(int(x, base=2))[2:])
+print(''.join(h))
+"
+    ;;
+  char-to-ascii)
+    printf "%d\n" "'$1'"
+    ;;
+  dec-to-bin)
+    cu.python.print "bin(int(\"$1\"))[2:]"
+    ;;
+  dec-to-hex)
+    printf "%x\n" "$1"
+    ;;
+  dec-to-oct)
+    printf "%o\n" "$1"
+    ;;
+  hex-to-bin)
+    cu.python.print "bin(int(\"$1\", 16))[2:]"
+    ;;
+  hex-to-dec)
+    printf "%d\n" "0x$1"
+    ;;
+  oct-to-bin)
+    cu.python.print "bin(int(\"$1\", 8))[2:]"
+    ;;
+  oct-to-dec)
+    printf "%d\n" "0$1"
+    ;;
+  *)
+    echo "Unknown subcommand: $subcommand"
+    exit 1
+    ;;
+esac
