@@ -10,7 +10,7 @@ printf "%s" "$(double_quoted "$1")"
 shift
 
 for arg in "$@"; do
-    printf " %s" "$(double_quoted "$arg")"
+  printf " %s" "$(double_quoted "$arg")"
 done
 
 
