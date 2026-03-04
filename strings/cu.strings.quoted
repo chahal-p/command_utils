@@ -10,5 +10,5 @@ printf "%s" "$(quoted "$1")"
 shift
 
 for arg in "$@"; do
-    printf " %s" "$(quoted "$arg")"
+  printf " %s" "$(quoted "$arg")"
 done
