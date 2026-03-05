@@ -11,7 +11,7 @@ Options:
   -f, --force       Overwrite existing entry (default: false)
       --etag        Etag to match (sha256 of existing value, use cu.persistent_kv.etag command to calculate etag)
                     If not set, existing value is set without pre-condition check
-                    (Only allowed if -f/--force is set)
+                    (If file do not exist or empty, provide empty string sha256. Command: echo -n | cu.persistent_kv.etag)
   -h, --help        show this help message and exit
 EOF
 }
