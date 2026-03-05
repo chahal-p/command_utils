@@ -4,6 +4,4 @@ d="$1"
 f="$2"
 shift 2
 printf "%s" "$f"
-for x in "$@"; do
-  printf "%s%s" "$d" "$x"
-done
+[ $# -gt 0 ] && printf "$d%s" "$@"
