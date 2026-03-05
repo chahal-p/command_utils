@@ -71,22 +71,22 @@ if [[ "${subcommand}" == "list" ]]; then
   if [[ -n "${namespace}" ]]; then
     validate_namespace
     items=()
-    for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep -v "\/$" | grep "^${namespace}\."); do
+    for x in $(ls -1F --sort=name --color=never "${STORAGE_DIR}" | grep -v "\/$" | grep "^${namespace}\."); do
       [ -r "${STORAGE_DIR%/}/${x}" ] || continue
       items+=("${x#*.}")
     done
     [[ ${#items[@]} -eq 0 ]] && die $CU_ERROR_NOT_FOUND "Namespace ${namespace} not found"
-    printf '%s\n' "${items[@]}" | sort -u
+    printf '%s\n' "${items[@]}"
   else
     items=()
     exclude_internal_ns=(-e ^${HIDDEN_NAMESPACE_PREFIX}.*)
     [[ "$FLAGS_CU_PERSISTENT_KV_SHOW_INTERNAL_NAMESPACES" == "true" ]] && exclude_internal_ns=("::")
-    for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep -v "\/$" | grep -v "${exclude_internal_ns[@]}"); do
+    for x in $(ls -1F --sort=name --color=never "${STORAGE_DIR}" | grep -v "\/$" | grep -v "${exclude_internal_ns[@]}"); do
       [ -r "${STORAGE_DIR%/}/${x}" ] || continue
       items+=("${x%.*}")
     done
     [[ ${#items[@]} -eq 0 ]] && exit
-    printf '%s\n' "${items[@]}" | sort -u
+    printf '%s\n' "${items[@]}"
   fi
   exit
 fi
