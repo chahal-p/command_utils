@@ -76,7 +76,7 @@ if [[ "${subcommand}" == "list" ]]; then
       items+=("${x#*.}")
     done
     [[ ${#items[@]} -eq 0 ]] && die $CU_ERROR_NOT_FOUND "Namespace ${namespace} not found"
-    printf '%s\n' "${items[@]}"
+    printf '%s\n' "${items[@]}" | sort -u
   else
     items=()
     exclude_internal_ns=(-e ^${HIDDEN_NAMESPACE_PREFIX}.*)
@@ -86,7 +86,7 @@ if [[ "${subcommand}" == "list" ]]; then
       items+=("${x%.*}")
     done
     [[ ${#items[@]} -eq 0 ]] && exit
-    printf '%s\n' "${items[@]}"
+    printf '%s\n' "${items[@]}" | sort -u
   fi
   exit
 fi
