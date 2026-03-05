@@ -115,11 +115,11 @@ if [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
   if [ -f "${key_file}" ]; then
     [ "${subcommand}" == "set" ] && die $CU_ERROR_ALREADY_EXISTS "Key ${key} in namespace ${namespace} already exists"
   else
-    [[ -n "${etag}" ]] && die $CU_ERROR_ETAG_MISMATCH "Etag provided for non-existent key ${key} in namespace ${namespace}"
     (umask 137 && touch "${key_file}") || die $CU_ERROR "Failed to create key ${key} in namespace ${namespace}"
   fi
   [ -w "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not writable"
   if [[ -n "${etag}" ]]; then
+    [ -r "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable, etag can not be matched."
     cat "${key_file}" 2>/dev/null | cu.sha256sum | grep -q "^${etag}$" || die $CU_ERROR_ETAG_MISMATCH "Etag mismatch for key ${key} in namespace ${namespace}"
   fi
   cat - > "${key_file}" || die $CU_ERROR "Failed to set value for key ${key} in namespace ${namespace}"
