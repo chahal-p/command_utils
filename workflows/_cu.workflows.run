@@ -115,8 +115,7 @@ function run_workflow() {
   "${wf_cmd[@]}" 2> >(xargs -L 1 -r echo "[ERROR] $(cu.date) [WORKER ${PID}-${WORKER_ID}] [WORKFLOW ${name}]") 1> >(xargs -L 1 -r echo "[INFO] $(cu.date) [WORKER ${PID}-${WORKER_ID}] [WORKFLOW ${name}]")
 }
 
-for ((i = 0; i < 3; i++)); do
-
+function run() {
   log_info "Checking for workflows ready to run"
 
   wfs=()
@@ -143,7 +142,8 @@ for ((i = 0; i < 3; i++)); do
     schedule_next_workflow "$wf_name" && log_workflow_info "$wf_name" "Workflow is scheduled for next run"
     unlock_workflow
   done
+}
 
-  sleep 20
-
-done
+run
+sleep 30
+run
