@@ -17,6 +17,14 @@ function log_info() {
 function log_error() {
   echo -e "[ERROR] [WORKER ${PID}-${WORKER_ID}] $(cu.date) $1" >&2
 }
+
+function log_workflow_info() {
+  log_info "[WORKFLOW ${1}] $2"
+}
+
+function log_workflow_error() {
+  log_error "[WORKFLOW ${1}] $2"
+}
 ##################################################
 
 ######### Load common library ####################
@@ -48,7 +56,7 @@ function lock_workflow() {
   local lock_file
   name="$1"
   lock_file="${LOCK_DIR}/workflow_${name}.lock"
-  (umask 000 && touch "${lock_file}") || { log_error "Failed to create lock file for workflow ${name}"; exit 1; }
+  (umask 000 && touch "${lock_file}") || { log_workflow_error "${name}" "Failed to create lock file for workflow"; exit 1; }
   exec 200<"${lock_file}"
   cu.lock --fd 200 --timeout 0 2>/dev/null
 }
@@ -79,7 +87,7 @@ function schedule_next_workflow() {
     return $code
   fi
   if [ $code -ne 0 ]; then
-    log_error "Failed to get workflow interval for ${name}"
+    log_workflow_error "${name}" "Failed to get workflow interval"
     return $code
   fi
   nanoseconds_interval="$(( interval * 1000000000 ))"
@@ -95,7 +103,7 @@ function run_workflow() {
   name="$1"
   wf_encoded_cmd="$(get_workflow_cmd "$name")"
   code=$?
-  [ $code -eq 0 ] || { [ $code -eq 40 ] && { log_error "Workflow ${name} not found"; exit $code; } || exit $code; }
+  [ $code -eq 0 ] || { [ $code -eq 40 ] && { log_workflow_error "${name}" "Workflow not found"; exit $code; } || exit $code; }
 
   wf_cmd=()
   IFS=':' read -ra wf_cmd <<< "$wf_encoded_cmd"
@@ -116,7 +124,7 @@ read -d '\n' -a wfs < <(list_workflows_scheduled)
 for wf_name in "${wfs[@]}"; do
   wf_at="$(get_workflow_scheduled "$wf_name")"
   code=$?
-  [ $code -eq 0 ] || { [ $code -eq 40 ] && continue || { log_error "Failed to get workflow scheduled time for ${wf_name}"; exit $code; } }
+  [ $code -eq 0 ] || { [ $code -eq 40 ] && continue || { log_workflow_error "${wf_name}" "Failed to get workflow scheduled time"; exit $code; } }
   [[ ${wf_at} -le $(cu.date.to-epoch --out_nanoseconds) ]] && wf_scheduled+=("${wf_name}:${wf_at}")
 done
 
@@ -126,9 +134,9 @@ for wf_schedule in "${sorted_wf_scheduled[@]}"; do
   wf_name="${wf_schedule%:*}"
   lock_workflow "$wf_name" || { close_fd_200; continue; }
   workflow_pop "$wf_name" || { unlock_workflow; continue; }
-  log_info "Running workflow ${wf_name}"
+  log_workflow_info "$wf_name" "Running workflow"
   run_workflow "$wf_name"
-  log_info "Workflow ${wf_name} is done"
-  schedule_next_workflow "$wf_name" && log_info "Workflow ${wf_name} is scheduled for next run"
+  log_workflow_info "$wf_name" "Workflow is done"
+  schedule_next_workflow "$wf_name" && log_workflow_info "$wf_name" "Workflow is scheduled for next run"
   unlock_workflow
 done
