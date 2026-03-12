@@ -145,5 +145,7 @@ function run() {
 }
 
 run
-sleep 30
+sleep 20
+run
+sleep 20
 run
