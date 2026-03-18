@@ -2,22 +2,45 @@
 
 source _cu.workflows.common || exit 1
 
-table=( -- "Name" "Next Scheduled" "$(printf "%s\n %s" "Recurring Interval" "(seconds)")" )
+parsed_args=$(pflags parse --name "$(basename "${0}")" ---- \
+  -s d -l detailed -t bool -h "Show detailed information about the workflow" ---- "$@") || exit
 
-for name in $(list_workflows_cmd); do
-  table+=(--)
-  table+=("${name}")
-  scheduled=$(get_workflow_scheduled "${name}")
-  code=$?
-  [ $code -eq 0 ] && [[ ${scheduled} -le $(cu.date.to-epoch --out_nanoseconds) ]] && scheduled="Now"
-  [ $code -eq 0 ] || scheduled="-"
+eval set -- "${parsed_args[@]}"
 
-  [ "${scheduled}" != "-" ] && [ "${scheduled}" != "Now" ] && scheduled=$(cu.date.from-epoch --seconds "$((${scheduled} / 1000000000))")
-  table+=("${scheduled}")
-  interval=$(get_workflow_interval "${name}")
-  code=$?
-  [ $code -eq 0 ] || interval="-"
-  table+=("${interval}")
+while [[ $# -gt 0 ]]; do
+  [[ "$1" == "--" ]] && { shift; break; }
+  case $1 in
+    --help)
+      printf '%s' "$2"
+      exit 0
+      ;;
+    *)
+      arg_name="${1#-}"
+      arg_name="${arg_name#-}"
+      eval "FLAGS_${arg_name}='${2//\'/\'\\\'\'}'"
+      shift 2
+      ;;
+  esac
 done
 
-cu.generate_table "${table[@]}"
+if [[ "${FLAGS_detailed}" == "true" ]]; then
+  table=( -- "Name" "Next Scheduled" "$(printf "%s\n %s" "Recurring Interval" "(seconds)")" )
+  for name in $(list_workflows_cmd); do
+    table+=(--)
+    table+=("${name}")
+    scheduled=$(get_workflow_scheduled "${name}")
+    code=$?
+    [ $code -eq 0 ] && [[ ${scheduled} -le $(cu.date.to-epoch --out_nanoseconds) ]] && scheduled="Now"
+    [ $code -eq 0 ] || scheduled="-"
+
+    [ "${scheduled}" != "-" ] && [ "${scheduled}" != "Now" ] && scheduled=$(cu.date.from-epoch --seconds "$((${scheduled} / 1000000000))")
+    table+=("${scheduled}")
+    interval=$(get_workflow_interval "${name}")
+    code=$?
+    [ $code -eq 0 ] || interval="-"
+    table+=("${interval}")
+  done
+  cu.generate_table "${table[@]}"
+else
+  list_workflows_cmd
+fi
