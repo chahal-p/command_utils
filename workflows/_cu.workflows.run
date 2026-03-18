@@ -91,7 +91,10 @@ function schedule_next_workflow() {
     return $code
   fi
   nanoseconds_interval="$(( interval * 1000000000 ))"
-  scheduled_at="$(( $(cu.date.to-epoch --out_nanoseconds) + nanoseconds_interval ))"
+
+  base_schedule="$(get_workflow_scheduled "$name")" || { log_workflow_error "${name}" "Failed to get workflow scheduled time, skipping next run schedule"; return 1; }
+  now="$(cu.date.to-epoch --out_nanoseconds)"
+  scheduled_at="$(( $base_schedule + (($now - $base_schedule) / $nanoseconds_interval) * $nanoseconds_interval + $nanoseconds_interval ))"
   set_workflow_scheduled "$name" "$scheduled_at"
 }
 
@@ -143,7 +146,6 @@ function run() {
     unlock_workflow
   done
 }
-
 run
 sleep 20
 run
