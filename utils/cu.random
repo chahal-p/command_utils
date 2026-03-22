@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+parsed_args=$(pflags parse --name "$(basename "${0}")" ---- \
+  -s s -l size -t number -h "Number of bytes to generate" -- \
+  -s o -l outform -t string -a bin -a hex --default bin -h "Output format (bin/hex), default: bin" ---- "$@") || exit
+
+eval set -- "${parsed_args[@]}"
+
+while [[ $# -gt 0 ]]; do
+  [[ "$1" == "--" ]] && { shift; break; }
+  case $1 in
+    --help)
+      printf '%s' "$2"
+      exit 0
+      ;;
+    *)
+      arg_name="${1#-}"
+      arg_name="${arg_name#-}"
+      eval "FLAGS_${arg_name}=${2}"
+      shift 2
+      ;;
+  esac
+done
+
+if [[ "${FLAGS_outform}" == "hex" ]]; then
+  cat /dev/random | head -c "${FLAGS_size}" | cu.bin-to-hex
+else
+  cat /dev/random | head -c "${FLAGS_size}"
+fi
