@@ -27,7 +27,7 @@ done
 [[ ${FLAGS_workers} -gt 0 ]] || { printf 'Number of workers must be greater than 0\n' >&2; exit 1; }
 
 log_file="> /dev/null 2>&1"
-[[ -n "${FLAGS_logfile}" ]] && log_file=">> $(realpath "${FLAGS_logfile}") 2>&1"
+[[ -n "${FLAGS_logfile}" ]] && touch "${FLAGS_logfile}" && log_file=">> $(realpath "${FLAGS_logfile}") 2>&1"
 
 crontab -l 2>/dev/null | grep -q "#$UNIQUE_ID" && { printf 'Workers already running\n' >&2; exit 1; }
 for i in $(seq 1 ${FLAGS_workers}); do

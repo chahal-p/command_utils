@@ -73,4 +73,4 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-_cu.persistent_kv chmod "${FLAGS_namespace}" "${FLAGS_key}" "${FLAGS_mode}"
+exec _cu.persistent_kv chmod "${FLAGS_namespace}" "${FLAGS_key}" "${FLAGS_mode}"

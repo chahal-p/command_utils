@@ -9,6 +9,9 @@ Options:
   -k, --key         Key
   -v, --value       Value (default: stdin)
   -f, --force       Overwrite existing entry (default: false)
+      --etag        Etag to match (sha256 of existing value, use cu.persistent_kv.etag command to calculate etag)
+                    If not set, existing value is set without pre-condition check
+                    (If file do not exist or empty, provide empty string sha256. Command: echo -n | cu.persistent_kv.etag)
   -h, --help        show this help message and exit
 EOF
 }
@@ -48,6 +51,11 @@ while [[ $# -gt 0 ]]; do
     -f|--force)
       FLAGS_force="true"
       ;;
+    --etag)
+      [ "$value_found" -eq 0 ] && { echo "No value given for $arg" >&2; exit 2; }
+      shift || exit 1
+      FLAGS_etag="$val"
+      ;;
     --namespace=*)
       val="${arg#--namespace=}"
       FLAGS_namespace="$val"
@@ -84,6 +92,10 @@ while [[ $# -gt 0 ]]; do
       [[ "$val" =~ ^(true|false)$ ]] || { echo "Invalid value ($val) for arg ${arg%=$val}. It can only be true or false" >&2; exit 2; }
       FLAGS_force="$val"
       ;;
+    --etag=*)
+      val="${arg#--etag=}"
+      FLAGS_etag="$val"
+      ;;
     *)
       echo "Unrecognized arguments: $arg" >&2
       exit 2
@@ -95,7 +107,7 @@ set_cmd="set"
 [[ "$FLAGS_force" == "true" ]] && set_cmd="set_overwrite"
 
 if [ "$read_stdin" = true ]; then
-  cat | _cu.persistent_kv "${set_cmd}" "${FLAGS_namespace}" "${FLAGS_key}"
+  exec _cu.persistent_kv "${set_cmd}" "${FLAGS_namespace}" "${FLAGS_key}" '' '' "${FLAGS_etag}"
 else
-  printf "%s" "${FLAGS_value}" | _cu.persistent_kv "${set_cmd}" "${FLAGS_namespace}" "${FLAGS_key}"
+  printf "%s" "${FLAGS_value}" | _cu.persistent_kv "${set_cmd}" "${FLAGS_namespace}" "${FLAGS_key}" '' '' "${FLAGS_etag}"
 fi

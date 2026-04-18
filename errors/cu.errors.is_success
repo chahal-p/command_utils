@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-
-source cu.errors.codes
-
-cu.errors.is_error "$@" || exit $CU_SUCCESS
-exit $CU_ERROR

@@ -2,21 +2,27 @@
 
 set -eo pipefail
 
-CU_SUCCESS=0
-CU_ERROR=1
-CU_ERROR_USAGE=2
-CU_ERROR_NOT_FOUND=40
-CU_ERROR_ALREADY_EXISTS=41
+source cu.errors_lib.bash
+
+subcommand="$1"
+namespace="$2"
+key="$3"
+mode="$4"
+owner_group="$5"
+etag="$6"
+
+HIDDEN_NAMESPACE_PREFIX="__cd97e6__"
 
 USER="$(whoami)"
 
-function echo_err() {
-  [ "$FLAGS_PERSISTENT_KV_DEBUG_MODE" == "true" ] || return 0
-  echo "cu.persistent_kv: $@" >&2
+function die() {
+  [ "$FLAGS_CU_PERSISTENT_KV_DEBUG_MODE" == "true" ] || cu.errors.die $1
+  cu.errors.die "$@"
 }
 
 function usage() {
-  echo "Usage: $(basename "${0}") <subcommand> <namespace> <key>"
+  [ "$FLAGS_CU_PERSISTENT_KV_DEBUG_MODE" == "true" ] || return 0
+  echo "Usage: $(basename "${0}") <subcommand> <namespace> <key> [mode] [owner_group] [etag]"
   echo "Subcommands:"
   echo "  list"
   echo "  get"
@@ -29,121 +35,133 @@ function usage() {
   echo "In set or set_overwrite subcommand, stdin is used as the value"
 }
 
-source _cu.persistent_kv.configs || { echo_err "Failed to load persistent_kv configs"; exit $CU_ERROR; }
+source _cu.persistent_kv.configs || die $CU_ERROR "Failed to load persistent_kv configs"
 LOCK_DIR="/tmp/cu_persistent_kv_locks"
 
-[[ -d "${STORAGE_DIR}" ]] || { echo_err "Storage directory ${STORAGE_DIR} does not exist"; exit $CU_ERROR; }
-[[ -d "${LOCK_DIR}" ]] || mkdir -m 777 -p "${LOCK_DIR}" || exit
+[[ -d "${STORAGE_DIR}" ]] || die "Storage directory ${STORAGE_DIR} does not exist"
+[[ -d "${LOCK_DIR}" ]] || mkdir -m 777 -p "${LOCK_DIR}" || die "Failed to create lock directory ${LOCK_DIR}"
 
-subcommand="$1"
-namespace="$2"
-key="$3"
-mode="$4"
-owner_group="$5"
+function validate_namespace() {
+  [[ -n "${namespace}" ]] || die $CU_ERROR_USAGE "Namespace is required"
+  [[ "${#namespace}" -le 64 ]] || die $CU_ERROR_USAGE "Invalid namespace: namespace should be at most 64 characters long"
+  [[ "${namespace}" =~ ^[a-zA-Z0-9_-]+$ ]] || die $CU_ERROR_USAGE "Invalid namespace: namespace should match regex ^[a-zA-Z0-9_-]+$"
+}
 
-if [[ -n "${namespace}" ]]; then
-  [[ "${#namespace}" -le 64 ]] || { echo_err "Invalid namespace: namespace should be at most 64 characters long"; exit $CU_ERROR_USAGE; }
-  [[ "${namespace}" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo_err "Invalid namespace: namespace should match regex ^[a-zA-Z0-9_-]+$"; exit $CU_ERROR_USAGE; }
-fi
+function validate_key() {
+  [[ -n "${key}" ]] || die $CU_ERROR_USAGE "Key is required"
+  [[ "${#key}" -le 64 ]] || die $CU_ERROR_USAGE "Invalid key: key should be at most 64 characters long"
+  [[ "${key}" =~ ^[a-zA-Z0-9_-]+$ ]] || die $CU_ERROR_USAGE "Invalid key: key should match regex ^[a-zA-Z0-9_-]+$"
+}
 
+function acquire_lock() {
+  key_lock_path="${LOCK_DIR}/${namespace}.${key}.lock"
+  (umask 000 && touch "${key_lock_path}") || die $CU_ERROR "Failed to create lock file"
+
+  lock_cmd="flock"
+  cu.is_macos && lock_cmd="lockf"
+
+  exec 200<"${key_lock_path}"
+  $lock_cmd 200
+}
 
 ########## BEGIN list subcommand ##########
 
 if [[ "${subcommand}" == "list" ]]; then
-  [ -r "${STORAGE_DIR}" ] || { echo_err "Permission denied: $USER does not have permission to read storage directory '${STORAGE_DIR}'"; exit $CU_ERROR; }
-  items=()
-  ns_filter=''
-  [ -n "$namespace" ] && ns_filter="^${namespace}\."
-  for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep "$ns_filter" | grep -v "\/$"); do
-    [ -r "${STORAGE_DIR%/}/${x}" ] || continue
-    IFS='.' read -r n k <<< "${x}"
-    if [[ -z "${namespace}" ]]; then
-      items+=("${n}")
-    elif [[ "${n}" == "${namespace}" ]]; then
-      items+=("${k}")
-    fi
-  done
-  if [[ ${#items[@]} -eq 0 ]]; then
-    [[ -z "${namespace}" ]] || { echo_err "Namespace ${namespace} not found"; exit $CU_ERROR_NOT_FOUND; }
+  [ -r "${STORAGE_DIR}" ] || die $CU_ERROR "Permission denied: $USER does not have permission to read storage directory '${STORAGE_DIR}'"
+  if [[ -n "${namespace}" ]]; then
+    validate_namespace
+    items=()
+    for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep -v "\/$" | grep "^${namespace}\."); do
+      [ -r "${STORAGE_DIR%/}/${x}" ] || continue
+      items+=("${x#*.}")
+    done
+    [[ ${#items[@]} -eq 0 ]] && die $CU_ERROR_NOT_FOUND "Namespace ${namespace} not found"
+    printf '%s\n' "${items[@]}" | sort -u
   else
+    items=()
+    exclude_internal_ns=(-e ^${HIDDEN_NAMESPACE_PREFIX}.*)
+    [[ "$FLAGS_CU_PERSISTENT_KV_SHOW_INTERNAL_NAMESPACES" == "true" ]] && exclude_internal_ns=("::")
+    for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep -v "\/$" | grep -v "${exclude_internal_ns[@]}"); do
+      [ -r "${STORAGE_DIR%/}/${x}" ] || continue
+      items+=("${x%.*}")
+    done
+    [[ ${#items[@]} -eq 0 ]] && exit
     printf '%s\n' "${items[@]}" | sort -u
   fi
   exit
 fi
 ########## END list subcommand ##########
 
-if [[ -z "${namespace}" || -z "${key}" ]]; then
-  echo_err "Namespace and key are required"
-  exit $CU_ERROR_USAGE 
-fi
-
-if [[ -n "${key}" ]]; then
-  [[ "${#key}" -le 64 ]] || { echo_err "Invalid key: key should be at most 64 characters long"; exit $CU_ERROR_USAGE; }
-  [[ "${key}" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo_err "Invalid key: key should match regex ^[a-zA-Z0-9_-]+$"; exit $CU_ERROR_USAGE; }
-fi
-
 key_file="${STORAGE_DIR}/${namespace}.${key}"
-
-key_lock_path="${LOCK_DIR}/${namespace}.${key}.lock"
-(umask 000 && touch "${key_lock_path}") || { echo_err "Failed to create lock file"; exit $CU_ERROR; }
-
-lock_cmd="flock"
-cu.is_macos && lock_cmd="lockf"
-
-# BEGIN Critical section
-# Acquire lock
-exec 200<"${key_lock_path}"
-$lock_cmd 200
 
 ########## BEGIN get subcommand ##########
 if [[ "${subcommand}" == "get" ]]; then
-  [ -f "${key_file}" ] || { echo_err "Key ${key} in namespace ${namespace} not found"; exit $CU_ERROR_NOT_FOUND; }
-  [ -r "${key_file}" ] || { echo_err "Permission denied: Key ${key} in namespace ${namespace} is not readable"; exit $CU_ERROR; }
-  cat "${key_file}" || { echo_err "Failed to get value for key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
+  validate_namespace
+  validate_key
+  acquire_lock
+  [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
+  [ -r "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable"
+  cat "${key_file}" || die $CU_ERROR "Failed to get value for key ${key} in namespace ${namespace}"
   exit
 fi
 ########## END get subcommand ##########
 
 ########## BEGIN set subcommand ##########
 if [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
-  [ -w "${STORAGE_DIR}" ] || { echo_err "Permission denied: $USER does not have permission to write in storage directory '${STORAGE_DIR}'"; exit $CU_ERROR; }
+  validate_namespace
+  validate_key
+  acquire_lock
+  [ -w "${STORAGE_DIR}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: $USER does not have permission to write in storage directory '${STORAGE_DIR}'"
   if [ -f "${key_file}" ]; then
-    [ "${subcommand}" == "set" ] && { echo_err "Key ${key} in namespace ${namespace} already exists"; exit $CU_ERROR_ALREADY_EXISTS; }
+    [ "${subcommand}" == "set" ] && die $CU_ERROR_ALREADY_EXISTS "Key ${key} in namespace ${namespace} already exists"
   else
-    (umask 137 && touch "${key_file}") || { echo_err "Failed to create key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
+    (umask 137 && touch "${key_file}") || die $CU_ERROR "Failed to create key ${key} in namespace ${namespace}"
   fi
-  cat - > "${key_file}" || { echo_err "Failed to set value for key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
+  [ -w "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not writable"
+  if [[ -n "${etag}" ]]; then
+    [ -r "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable, etag can not be matched."
+    cat "${key_file}" 2>/dev/null | cu.sha256sum | grep -q "^${etag}$" || die $CU_ERROR_ETAG_MISMATCH "Etag mismatch for key ${key} in namespace ${namespace}"
+  fi
+  cat - > "${key_file}" || die $CU_ERROR "Failed to set value for key ${key} in namespace ${namespace}"
   exit
 fi
 ########## END set subcommand ##########
 
 ########## BEGIN delete subcommand ##########
 if [[ "${subcommand}" == "delete" ]]; then
-  [ -w "${STORAGE_DIR}" ] || { echo_err "Permission denied: $USER does not have permission to delete in storage directory '${STORAGE_DIR}'"; exit $CU_ERROR; }
-  [ -f "${key_file}" ] || { echo_err "Key ${key} in namespace ${namespace} not found"; exit $CU_ERROR_NOT_FOUND; }
-  rm "${key_file}" > /dev/null 2>&1 || { echo_err "Failed to delete key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
+  validate_namespace
+  validate_key
+  acquire_lock
+  [ -w "${STORAGE_DIR}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: $USER does not have permission to delete in storage directory '${STORAGE_DIR}'"
+  [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
+  [ -w "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not deletable"
+  rm "${key_file}" > /dev/null 2>&1 || die $CU_ERROR "Failed to delete key ${key} in namespace ${namespace}"
   exit
 fi
 ########## END delete subcommand ##########
 
 ########## BEGIN chmod subcommand ##########
 if [[ "${subcommand}" == "chmod" ]]; then
-  [ -f "${key_file}" ] || { echo_err "Key ${key} in namespace ${namespace} not found"; exit $CU_ERROR_NOT_FOUND; }
-  chmod "${mode}" "${key_file}" || { echo_err "Failed to set mode for key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
+  validate_namespace
+  validate_key
+  acquire_lock
+  [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
+  chmod "${mode}" "${key_file}" || die $CU_ERROR "Failed to set mode for key ${key} in namespace ${namespace}"
   exit
 fi
 ########## END chmod subcommand ##########
 
 ########## BEGIN chown subcommand ##########
 if [[ "${subcommand}" == "chown" ]]; then
-  [ -f "${key_file}" ] || { echo_err "Key ${key} in namespace ${namespace} not found"; exit $CU_ERROR_NOT_FOUND; }
-  chown "${owner_group}" "${key_file}" || { echo_err "Failed to set owner/group for key ${key} in namespace ${namespace}"; exit $CU_ERROR; }
+  validate_namespace
+  validate_key
+  acquire_lock
+  [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
+  chown "${owner_group}" "${key_file}" || die $CU_ERROR "Failed to set owner/group for key ${key} in namespace ${namespace}"
   exit
 fi
 ########## END chown subcommand ##########
 
-echo_err "Unknown subcommand: ${subcommand}"
 usage
-exit $CU_ERROR_USAGE
-
-# END Critical section
+[[ -z "${subcommand}" ]] && die $CU_ERROR_USAGE "No subcommand specified"
+die $CU_ERROR_USAGE "Unknown subcommand: ${subcommand}"

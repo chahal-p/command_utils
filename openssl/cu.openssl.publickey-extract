@@ -14,4 +14,4 @@ pbash.args.extract -s 'o:' -l 'outfile:' -o outfile -- "$@" || { read -p "-o|--o
 outform=()
 pbash.args.extract -l 'outform:' -o outform -- "$@" || { read -p "--outform (der/pem): "; outform=$REPLY; }
 
-cu.eval -v -- openssl x509 -pubkey -inform "$inform" -in "$file" -outform "$outform" -out "$outfile" -noout
+cu.command -v -- openssl x509 -pubkey -inform "$inform" -in "$file" -outform "$outform" -out "$outfile" -noout

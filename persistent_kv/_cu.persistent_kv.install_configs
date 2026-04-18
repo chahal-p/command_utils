@@ -8,7 +8,7 @@ storage_path="$3"
 path="$(realpath "${storage_path}")" || exit
 storage_dir="${path%/}"
 
-[[ -d "${storage_dir}" ]] || { echo "Storage directory ${storage_dir} does not exist." >&2; exit 1; }
+[[ -d "${storage_dir}" ]] || { echo "Storage directory ${storage_dir} does not exist." >&2; exit 40; }
 
 perms="$(ls -ld "${storage_dir}")"
 

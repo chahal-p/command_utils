@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source cu.errors_lib.bash
+
 source pbash-args.sh || { echo "pbash-args.sh is not installed"; exit 1; }
 
 type=()
@@ -11,4 +13,4 @@ pbash.args.extract -s 'f:' -l 'file:' -o file -- "$@" || { read -p "-f|--file (f
 inform=()
 pbash.args.extract -l 'inform:' -o inform -- "$@" || { read -p "--inform (der/pem): "; inform=$REPLY; }
 
-cu.eval -v -- openssl "$type" -inform "$inform" -in "$file" -text -noout
+cu.command -v -- openssl "$type" -inform "$inform" -in "$file" -text -noout

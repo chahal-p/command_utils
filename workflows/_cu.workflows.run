@@ -1,47 +1,76 @@
 #!/usr/bin/env bash
 
-WORKER_ID="$$"
-[[ -n "${1}" ]] && WORKER_ID="${WORKER_ID}-${1}"
-
 [[ ":$PATH:" == *":/usr/local/bin:"* ]] || export PATH="/usr/local/bin:$PATH"
 [[ ":$PATH:" == *":$HOME/.local/bin:"* ]] || export PATH="$HOME/.local/bin:$PATH"
 
-USER="$(whoami)"
-[[ -n "${USER}" ]] || { log_error "Failed to get user name"; exit 1; }
+######### Worker ID ##############################
+PID="$$"
+WORKER_ID="${1}"
+[[ -n "${WORKER_ID}" ]] || { echo "No worker ID provided" >&2; exit 1; }
+##################################################
 
-export USER
-
+######### Logging functions ######################
 function log_info() {
-  echo "[INFO] [WORKER ${WORKER_ID}] $(date +%Y-%m-%dT%H:%M:%S%z) $1"
+  echo -e "[INFO] $(cu.date) [WORKER ${PID}-${WORKER_ID}] $1"
 }
 
 function log_error() {
-  echo "[ERROR] [WORKER ${WORKER_ID}] $(date +%Y-%m-%dT%H:%M:%S%z) $1" >&2
+  echo -e "[ERROR] $(cu.date) [WORKER ${PID}-${WORKER_ID}] $1" >&2
 }
 
+function log_workflow_info() {
+  log_info "[WORKFLOW ${1}] $2"
+}
+
+function log_workflow_error() {
+  log_error "[WORKFLOW ${1}] $2"
+}
+##################################################
+
+######### Load common library ####################
+source _cu.workflows.common || { log_error "Failed to source _cu.workflows.common"; exit 1; }
+##################################################
+
+######### Lock directory setup ###################
 LOCK_DIR="/tmp/cu_workflows_locks_${USER}"
 [[ -d "${LOCK_DIR}" ]] || mkdir -m 777 -p "${LOCK_DIR}" || exit
+##################################################
+
+######### Acquire worker ID lock #################
+function acquire_worker_id_lock() {
+  local lock_file
+  lock_file="${LOCK_DIR}/worker_${WORKER_ID}.lock"
+  (umask 000 && touch "${lock_file}") || { log_error "Failed to create lock file for worker ${WORKER_ID}"; exit 1; }
+  exec 201<"${lock_file}"
+  cu.lock --fd 201 --timeout 0 2>/dev/null
+}
+acquire_worker_id_lock || exit 0  # { log_info "Worker ${WORKER_ID} is active"; exit 0; }
+##################################################
+
+function close_fd_200() {
+  exec 200<&-
+}
 
 function lock_workflow() {
   local name
   local lock_file
   name="$1"
-  lock_file="${LOCK_DIR}/${name}.lock"
-  (umask 000 && touch "${lock_file}") || { log_error "Failed to create lock file for workflow ${name}"; exit 1; }
+  lock_file="${LOCK_DIR}/workflow_${name}.lock"
+  (umask 000 && touch "${lock_file}") || { log_workflow_error "${name}" "Failed to create lock file for workflow"; exit 1; }
   exec 200<"${lock_file}"
-  cu.lock --fd 200 --timeout 0
+  cu.lock --fd 200 --timeout 0 2>/dev/null
 }
 
 function unlock_workflow() {
-  exec 200<&-
+  close_fd_200
 }
 
 function workflow_pop() {
   local name
   local scheduled_at
   name="$1"
-  scheduled_at="$(_cu.persistent_kv get _cu_workflows_scheduled_${USER} "$name" 2>/dev/null)" || return 1
-  [[ ${scheduled_at%.*} -le $(date +%s) ]] || return 1
+  scheduled_at="$(get_workflow_scheduled "$name")" || return 1
+  [[ ${scheduled_at} -le $(cu.date.to-epoch --out_nanoseconds) ]] || return 1
   return 0
 }
 
@@ -51,18 +80,22 @@ function schedule_next_workflow() {
   local code
   local scheduled_at
   name="$1"
-  interval="$(_cu.persistent_kv get _cu_workflows_intervals_${USER} "${name}" 2>/dev/null)"
+  interval="$(get_workflow_interval "$name")"
   code=$?
   if [ $code -eq 40 ]; then
-    _cu.persistent_kv delete _cu_workflows_scheduled_${USER} "$name" 2>/dev/null
+    delete_workflow_scheduled "$name"
     return $code
   fi
   if [ $code -ne 0 ]; then
-    log_error "Failed to get workflow interval for ${name}"
+    log_workflow_error "${name}" "Failed to get workflow interval"
     return $code
   fi
-  scheduled_at="$(date +%s.%N -d "+${interval} seconds")"
-  printf '%s' "$scheduled_at" | _cu.persistent_kv set_overwrite _cu_workflows_scheduled_${USER} "$name"
+  nanoseconds_interval="$(( interval * 1000000000 ))"
+
+  base_schedule="$(get_workflow_scheduled "$name")" || { log_workflow_error "${name}" "Failed to get workflow scheduled time, skipping next run schedule"; return 1; }
+  now="$(cu.date.to-epoch --out_nanoseconds)"
+  scheduled_at="$(( $base_schedule + (( $now - $base_schedule ) / $nanoseconds_interval ) * $nanoseconds_interval + $nanoseconds_interval ))"
+  set_workflow_scheduled "$name" "$scheduled_at"
 }
 
 function run_workflow() {
@@ -71,9 +104,9 @@ function run_workflow() {
   local code
   local wf_cmd
   name="$1"
-  wf_encoded_cmd="$(_cu.persistent_kv get _cu_workflows_${USER} "${name}" 2>/dev/null)"
+  wf_encoded_cmd="$(get_workflow_cmd "$name")"
   code=$?
-  [ $code -eq 0 ] || { [ $code -eq 40 ] && { log_error "Workflow ${name} not found"; exit $code; } || exit $code; }
+  [ $code -eq 0 ] || { [ $code -eq 40 ] && { log_workflow_error "${name}" "Workflow not found"; exit $code; } || exit $code; }
 
   wf_cmd=()
   IFS=':' read -ra wf_cmd <<< "$wf_encoded_cmd"
@@ -82,31 +115,39 @@ function run_workflow() {
     wf_cmd[i]="$(printf '%s' "${wf_cmd[i]}" | base64 -d)"
   done
 
-  "${wf_cmd[@]}"
+  "${wf_cmd[@]}" 2> >(xargs -L 1 -r echo "[ERROR] $(cu.date) [WORKER ${PID}-${WORKER_ID}] [WORKFLOW ${name}]") 1> >(xargs -L 1 -r echo "[INFO] $(cu.date) [WORKER ${PID}-${WORKER_ID}] [WORKFLOW ${name}]")
 }
 
-log_info "Checking for workflows ready to run"
+function run() {
+  log_info "Checking for workflows ready to run"
 
-wf_scheduled=()
+  wfs=()
+  wf_scheduled=()
 
-readarray -t wfs < <(_cu.persistent_kv list _cu_workflows_scheduled_${USER} 2>/dev/null)
+  read -d '\n' -a wfs < <(list_workflows_scheduled)
 
-for wf_name in "${wfs[@]}"; do
-  wf_at=$(_cu.persistent_kv get _cu_workflows_scheduled_${USER} "${wf_name}" 2>/dev/null)
-  code=$?
-  [ $code -eq 0 ] || { [ $code -eq 40 ] && continue || { log_error "Failed to get workflow scheduled time for ${wf_name}"; exit $code; } }
-  [[ ${wf_at%.*} -le $(date +%s) ]] && wf_scheduled+=("${wf_name}:${wf_at}")
-done
+  for wf_name in "${wfs[@]}"; do
+    wf_at="$(get_workflow_scheduled "$wf_name")"
+    code=$?
+    [ $code -eq 0 ] || { [ $code -eq 40 ] && continue || { log_workflow_error "${wf_name}" "Failed to get workflow scheduled time"; exit $code; } }
+    [[ ${wf_at} -le $(cu.date.to-epoch --out_nanoseconds) ]] && wf_scheduled+=("${wf_name}:${wf_at}")
+  done
 
-IFS=$'\n' sorted_wf_scheduled=($(printf "%s\n" "${wf_scheduled[@]}" | sort -t: -k2n,2n))
+  IFS=$'\n' sorted_wf_scheduled=($(printf "%s\n" "${wf_scheduled[@]}" | sort -t: -k2n,2n))
 
-for wf_schedule in "${sorted_wf_scheduled[@]}"; do
-  wf_name="${wf_schedule%:*}"
-  lock_workflow "$wf_name" || continue
-  workflow_pop "$wf_name" || { unlock_workflow; continue; }
-  log_info "Running workflow ${wf_name}"
-  run_workflow "$wf_name"
-  log_info "Workflow ${wf_name} is done"
-  schedule_next_workflow "$wf_name" && log_info "Workflow ${wf_name} is scheduled for next run"
-  unlock_workflow
-done
+  for wf_schedule in "${sorted_wf_scheduled[@]}"; do
+    wf_name="${wf_schedule%:*}"
+    lock_workflow "$wf_name" || { close_fd_200; continue; }
+    workflow_pop "$wf_name" || { unlock_workflow; continue; }
+    log_workflow_info "$wf_name" "Running workflow"
+    run_workflow "$wf_name"
+    log_workflow_info "$wf_name" "Workflow is done"
+    schedule_next_workflow "$wf_name" && log_workflow_info "$wf_name" "Workflow is scheduled for next run"
+    unlock_workflow
+  done
+}
+run
+sleep 20
+run
+sleep 20
+run

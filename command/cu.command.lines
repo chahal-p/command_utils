@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+source cu.errors_lib.bash || exit
+
+function usage() {
+  echo "Usage: $(basename "$0") <command> [args...]"
+  echo "  <command>: The command to run on each line of the input from stdin"
+  echo "  Captured line is accessible with \$1"
+  
+  echo ""
+  echo "Example:"
+  echo "  cat file.txt | $(basename "$0") echo \"\\\$1\""
+  echo "      OR"
+  echo "  cat file.txt | $(basename "$0") echo '\$1'"
+  echo ""
+  echo "  Above command will print each line of file.txt"
+}
+
+[[ "$1" == "-h" || "$1" == "--help" ]] && { usage; exit 0; }
+[[ $# -eq 0 ]] && { usage >&2; cu.errors.die_usage; }
+
+args=()
+
+while [[ $# -gt 0 ]]; do
+  args+=("$(cu.strings.double_quoted "$1")")
+  shift
+done
+
+while IFS= read -r line; do
+  line_dq="$(cu.strings.quoted "$line")"
+  cat <<< "
+set -- $line_dq
+${args[@]}
+" | bash
+done

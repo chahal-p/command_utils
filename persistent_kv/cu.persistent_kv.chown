@@ -87,4 +87,4 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-_cu.persistent_kv chown "${FLAGS_namespace}" "${FLAGS_key}" "" "${FLAGS_owner}:${FLAGS_group}"
+exec _cu.persistent_kv chown "${FLAGS_namespace}" "${FLAGS_key}" "" "${FLAGS_owner}:${FLAGS_group}"

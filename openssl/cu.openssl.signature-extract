@@ -13,4 +13,4 @@ pbash.args.extract -s 'o:' -l 'outfile:' -o outfile -- "$@" || { read -p "-o|--o
 
 x=$(openssl asn1parse -inform $inform -in "$file" | tail -n 1 | cut -d ":" -f 1 | xargs)
 
-cu.eval -v -- openssl asn1parse -inform "$inform" -in "$file" -out "$outfile" -strparse "$x" -noout
+cu.command -v -- openssl asn1parse -inform "$inform" -in "$file" -out "$outfile" -strparse "$x" -noout
