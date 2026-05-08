@@ -82,6 +82,8 @@ function format_command() {
 [[ "${#@}" -gt 0 ]] && cu.errors.die_usage "Unknown arguments: ${@}"
 [[ "${#cmd_and_args[@]}" -eq 0 ]] && cu.errors.die_usage "No command provided"
 
+[[ "${cmd_and_args[0]}" == -* ]] && cu.errors.die_usage "${cmd_and_args[0]} is not a valid command."
+
 [[ "$FLAGS_verbose" == "true" || "$FLAGS_confirm" == "true" ]] && echo "Command: $(format_command "${cmd_and_args[@]}")"
 [ "$FLAGS_confirm" == "true" ] && { cu.confirm "Confirm command" || exit; }
 
