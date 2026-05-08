@@ -23,7 +23,7 @@ parsed_args=$(pflags parse --name "$(basename "$0")" --usage "$(basename "$0") [
   -s s -l signal -t string --default 'SIGKILL' -h "Signal to send to the command when the timeout is reached. Default is SIGKILL" -- \
   -s k -l kill_after -t number --default '' -h "Time to wait after sending the signal before killing the command.\n If not specified, wait indefinitely for the signal to be processed" -- \
   -l lock_file -t string --default '' -h "Lock file to use for locking. If not specified, no locking will be acquired\n By default, the lock is exclusive" -- \
-  -l lock_timeout -t number --default '' -h "Timeout for acquiring the lock. If not specified, wait indefinitely for the lock" -- \
+  -l nonblock -t bool -h "Do not wait for the lock to be acquired. If the lock is not acquired, fail" -- \
   ---- "${internal_args[@]}") || exit
 
 eval set -- "${parsed_args}"
@@ -85,8 +85,11 @@ function format_command() {
 [[ "$FLAGS_verbose" == "true" || "$FLAGS_confirm" == "true" ]] && echo "Command: $(format_command "${cmd_and_args[@]}")"
 [ "$FLAGS_confirm" == "true" ] && { cu.confirm "Confirm command" || exit; }
 
+lock_timeout=""
+[ "$FLAGS_nonblock" == "true" ] && lock_timeout="0"
+
 [[ "$FLAGS_line" == "true" ]] && cmd_and_args=( _cu.command.lines "${cmd_and_args[@]}" )
-[[ -n "$FLAGS_lock_file" ]] && cmd_and_args=( _cu.command.lock "$FLAGS_lock_file" "$FLAGS_lock_timeout" "${cmd_and_args[@]}" )
+[[ -n "$FLAGS_lock_file" ]] && cmd_and_args=( _cu.command.lock "$FLAGS_lock_file" "$lock_timeout" "${cmd_and_args[@]}" )
 [[ -n "$FLAGS_timeout" ]] && cmd_and_args=( _cu.command.timeout "$FLAGS_timeout" "$FLAGS_signal" "$FLAGS_kill_after" "${cmd_and_args[@]}" )
 
 exec "${cmd_and_args[@]}"
