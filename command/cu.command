@@ -18,9 +18,10 @@ done
 parsed_args=$(pflags parse --name "$(basename "$0")" --usage "$(basename "$0") [options...] -- <command> [args...]" ---- \
   -s c -l confirm -t bool -h "Show command and ask for confirmation before running" -- \
   -s v -l verbose -t bool -h "Show command and run" -- \
-  -s t -l timeout -t number --default '' -h "Timeout for the command. Once the timeout is reached, the specified signal will be sent to the command" -- \
+  -s l -l line -t bool -h "Execute the command for each line of input from stdin.\nUse \$1 to refer the line of input in the command.\n Example: echo \"\\\\\$1\".\n Default: false" -- \
+  -s t -l timeout -t number --default '' -h "Timeout for the command.\n Once the timeout is reached, the specified signal will be sent to the command" -- \
   -s s -l signal -t string --default 'SIGKILL' -h "Signal to send to the command when the timeout is reached. Default is SIGKILL" -- \
-  -s k -l kill_after -t number --default '' -h "Time to wait after sending the signal before killing the command. If not specified, wait indefinitely for the signal to be processed" -- \
+  -s k -l kill_after -t number --default '' -h "Time to wait after sending the signal before killing the command.\n If not specified, wait indefinitely for the signal to be processed" -- \
   -l lock_file -t string --default '' -h "Lock file to use for locking. If not specified, no locking will be acquired\n By default, the lock is exclusive" -- \
   -l lock_timeout -t number --default '' -h "Timeout for acquiring the lock. If not specified, wait indefinitely for the lock" -- \
   ---- "${internal_args[@]}") || exit
@@ -82,15 +83,10 @@ function format_command() {
 [[ "${#cmd_and_args[@]}" -eq 0 ]] && cu.errors.die_usage "No command provided"
 
 [[ "$FLAGS_verbose" == "true" || "$FLAGS_confirm" == "true" ]] && echo "Command: $(format_command "${cmd_and_args[@]}")"
-
 [ "$FLAGS_confirm" == "true" ] && { cu.confirm "Confirm command" || exit; }
 
-if [[ -n "$FLAGS_timeout" && -n "$FLAGS_lock_file" ]]; then
-  exec _cu.command.timeout "$FLAGS_timeout" "$FLAGS_signal" "$FLAGS_kill_after" _cu.command.lock "$FLAGS_lock_file" "$FLAGS_lock_timeout" "${cmd_and_args[@]}"
-elif [[ -n "$FLAGS_timeout" ]]; then
-  exec _cu.command.timeout "$FLAGS_timeout" "$FLAGS_signal" "$FLAGS_kill_after" "${cmd_and_args[@]}"
-elif [[ -n "$FLAGS_lock_file" ]]; then
-  exec _cu.command.lock "$FLAGS_lock_file" "$FLAGS_lock_timeout" "${cmd_and_args[@]}"
-else
-  exec "${cmd_and_args[@]}"
-fi
+[[ "$FLAGS_line" == "true" ]] && cmd_and_args=( _cu.command.lines "${cmd_and_args[@]}" )
+[[ -n "$FLAGS_lock_file" ]] && cmd_and_args=( _cu.command.lock "$FLAGS_lock_file" "$FLAGS_lock_timeout" "${cmd_and_args[@]}" )
+[[ -n "$FLAGS_timeout" ]] && cmd_and_args=( _cu.command.timeout "$FLAGS_timeout" "$FLAGS_signal" "$FLAGS_kill_after" "${cmd_and_args[@]}" )
+
+exec "${cmd_and_args[@]}"
