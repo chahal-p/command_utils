@@ -33,6 +33,7 @@ function usage() {
   echo "  chmod"
   echo "  chown"
   echo "  print_path"
+  echo "  print_namespace_path"
   echo ""
   echo "In set or set_overwrite subcommand, stdin is used as the value"
 }
@@ -112,6 +113,7 @@ if [[ "${subcommand}" == "get" ]]; then
 fi
 ########## END get subcommand ##########
 
+########## BEGIN print_path subcommand ##########
 if [[ "${subcommand}" == "print_path" ]]; then
   validate_namespace
   validate_key
@@ -120,6 +122,15 @@ if [[ "${subcommand}" == "print_path" ]]; then
   printf "%s" "${key_file}"
   exit
 fi
+########## END print_path subcommand ##########
+
+########## BEGIN print_namespace_path subcommand ##########
+if [[ "${subcommand}" == "print_namespace_path" ]]; then
+  validate_namespace
+  printf "%s" "${STORAGE_DIR}/${namespace}"
+  exit
+fi
+########## END print_namespace_path subcommand ##########
 
 ########## BEGIN set subcommand ##########
 if [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
