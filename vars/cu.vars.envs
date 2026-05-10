@@ -5,11 +5,12 @@ source _cu.vars.configs || exit 1
 user="$(whoami)"
 namespace="${NAMESPACE_PREFIX}_${user}"
 
-readarray -t vars < <(_cu.persistent_kv list "${namespace}" 2>/dev/null)
+readarray -t paths < <(_cu.persistent_kv list_path "${namespace}" 2>/dev/null)
 
-for var in "${vars[@]}"; do
+for path in "${paths[@]}"; do
+  var="${path##*/}"
+  var="${var#"${namespace}".}"
   command -v "${var}" &> /dev/null || continue
-  value="$(_cu.persistent_kv get "${namespace}" "${var}" 2>/dev/null)"
   # [ -z "$value" ] || { (echo "${value}" | base64 -d | head -c 10 | file -i - | grep -q "charset=binary") && continue; }
-  printf "%s=%s;\n" "${var}" "$(cu.strings.quoted "${value}")"
+  printf "%s=%s;\n" "${var}" "$(cu.strings.quoted "$(cat "$path")")"
 done
