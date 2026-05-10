@@ -15,9 +15,13 @@ done
 MAX_LEN=80
 READ_LEN=$(( MAX_LEN + 1 ))
 
-for var in "${vars[@]}"; do
+readarray -t paths < <(_cu.persistent_kv list_path "${namespace}" 2>/dev/null)
+
+for path in "${paths[@]}"; do
+  var="${path##*/}"
+  var="${var#"${namespace}".}"
   command -v "${var}" &> /dev/null || continue
-  value="$(_cu.persistent_kv get "${namespace}" "${var}" 2>/dev/null | head -c $READ_LEN)"
+  value="$(cat "$path" | head -c $READ_LEN)"
   # [ -z "$value" ] ||  { (echo "${value}" | base64 -d | file -i - | grep -q "charset=binary") && value="<binary data>"; }
   # [ "$value" == "<binary data>" ] || value="$(echo "${value}" | base64 -d)"
   [[ "${#value}" -gt $MAX_LEN ]] && value="${value:0:$MAX_LEN}...<truncated>..."
