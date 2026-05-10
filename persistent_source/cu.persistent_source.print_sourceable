@@ -47,18 +47,19 @@ done
 index_names=()
 
 user=$(whoami)
-
+index_ns_path="$(_cu.persistent_kv print_path "${NAMESPACE_PREFIX}_index_${FLAGS_shell_type}_${user}")"
 readarray -t names < <(_cu.persistent_kv list "${NAMESPACE_PREFIX}_data_${FLAGS_shell_type}_${user}" 2>/dev/null)
 for name in "${names[@]}"; do
-  index="$(_cu.persistent_kv get "${NAMESPACE_PREFIX}_index_${FLAGS_shell_type}_${user}" "$name")"
+  index="$(cat "${index_ns_path}.${name}")"
   index_names+=("$FLAGS_shell_type:$index:$name")
 done
 
 IFS=$'\n' sorted_array=($(printf "%s\n" "${index_names[@]}" | sort -t: -k1,1 -k2n,2n -k3,3))
 
+data_ns_path="$(_cu.persistent_kv print_path "${NAMESPACE_PREFIX}_data_${FLAGS_shell_type}_${user}")"
 for index_name in "${sorted_array[@]}"; do
   IFS=':' read -r sh index name <<< "$index_name"
   echo "# ${sh} script from: $name"
-  _cu.persistent_kv get "${NAMESPACE_PREFIX}_data_${FLAGS_shell_type}_${user}" "$name"
+  cat "${data_ns_path}.${name}"
   echo ""
 done
