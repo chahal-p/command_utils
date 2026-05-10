@@ -33,7 +33,6 @@ function usage() {
   echo "  chmod"
   echo "  chown"
   echo "  print_path"
-  echo "  print_namespace_path"
   echo ""
   echo "In set or set_overwrite subcommand, stdin is used as the value"
 }
@@ -116,21 +115,17 @@ fi
 ########## BEGIN print_path subcommand ##########
 if [[ "${subcommand}" == "print_path" ]]; then
   validate_namespace
-  validate_key
-  [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
-  [ -r "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable"
-  printf "%s" "${key_file}"
+  if [[ -n "${key}" ]]; then
+    validate_key
+    [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
+    [ -r "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable"
+    printf "%s" "${key_file}"
+  else
+    printf "%s" "${STORAGE_DIR}/${namespace}"
+  fi
   exit
 fi
 ########## END print_path subcommand ##########
-
-########## BEGIN print_namespace_path subcommand ##########
-if [[ "${subcommand}" == "print_namespace_path" ]]; then
-  validate_namespace
-  printf "%s" "${STORAGE_DIR}/${namespace}"
-  exit
-fi
-########## END print_namespace_path subcommand ##########
 
 ########## BEGIN set subcommand ##########
 if [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
