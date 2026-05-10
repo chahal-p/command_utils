@@ -25,6 +25,7 @@ function usage() {
   echo "Usage: $(basename "${0}") <subcommand> <namespace> <key> [mode] [owner_group] [etag]"
   echo "Subcommands:"
   echo "  list"
+  echo "  list_path"
   echo "  get"
   echo "  set"
   echo "  set_overwrite"
@@ -66,14 +67,18 @@ function acquire_lock() {
 
 ########## BEGIN list subcommand ##########
 
-if [[ "${subcommand}" == "list" ]]; then
+if [[ "${subcommand}" == "list" || "${subcommand}" == "list_path" ]]; then
   [ -r "${STORAGE_DIR}" ] || die $CU_ERROR "Permission denied: $USER does not have permission to read storage directory '${STORAGE_DIR}'"
-  if [[ -n "${namespace}" ]]; then
+  if [[ -n "${namespace}" || "${subcommand}" == "list_path" ]]; then
     validate_namespace
     items=()
     for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep -v "\/$" | grep "^${namespace}\."); do
       [ -r "${STORAGE_DIR%/}/${x}" ] || continue
-      items+=("${x#*.}")
+      if [[ "${subcommand}" == "list_path" ]]; then
+        items+=("${STORAGE_DIR%/}/${x}")
+      else
+        items+=("${x#*.}")
+      fi
     done
     [[ ${#items[@]} -eq 0 ]] && die $CU_ERROR_NOT_FOUND "Namespace ${namespace} not found"
     printf '%s\n' "${items[@]}" | sort -u
