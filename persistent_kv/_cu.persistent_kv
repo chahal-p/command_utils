@@ -32,6 +32,7 @@ function usage() {
   echo "  delete"
   echo "  chmod"
   echo "  chown"
+  echo "  print_path"
   echo ""
   echo "In set or set_overwrite subcommand, stdin is used as the value"
 }
@@ -110,6 +111,15 @@ if [[ "${subcommand}" == "get" ]]; then
   exit
 fi
 ########## END get subcommand ##########
+
+if [[ "${subcommand}" == "print_path" ]]; then
+  validate_namespace
+  validate_key
+  [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
+  [ -r "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable"
+  printf "%s" "${key_file}"
+  exit
+fi
 
 ########## BEGIN set subcommand ##########
 if [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
