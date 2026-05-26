@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+source cu.errors_lib.bash || { echo "cu.errors_lib.bash not found" >&2; exit 1; }
+
+[[ $# -eq 0 ]] && cu.errors.die_usage "No command provided to execute"
+
+[[ "$1" == "-h" || "$1" == "--help" ]] && {
+  echo "Usage: $(basename "$0") [-h|--help] <command> [args...]"
+  echo ""
+  echo "$(basename "$0") - Execute a shell command on the content of the file opened in Vim."
+  echo "It passes the file content via stdin to the command"
+  exit 0
+}
+
+input_file="$(mktemp)"
+trap 'rm -f "${input_file}"' EXIT
+vim "${input_file}"
+cat "${input_file}" | "$@"
