@@ -2,9 +2,10 @@
 
 source cu.errors_lib.bash || { echo "cu.errors_lib.bash not found" >&2; exit 1; }
 
-usage='cu.strings.split_join -d STRING -j STRING [-h] "${input_string}"'
-
-parsed_args=$(pflags parse --name "$(basename "${0}")" --usage "${usage}" ---- \
+usage='cu.strings.split_join -d STRING -j STRING [-h] [INPUT_STRING]'
+description="Splits the INPUT_STRING by the provided delimiter and joins the parts using the provided joiner.
+Reads from stdin if no input string is provided in arguments."
+parsed_args=$(pflags parse --name "$(basename "${0}")" --usage "${usage}" --description "$description" ---- \
   -s d -l delimiter -t string -h "Delimiter used to split the string" -- \
   -s j -l joiner -t string -h "Delimiter used to join the string" ---- "$@") || exit
 
@@ -26,10 +27,14 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ $# -eq 0 ]] && cu.errors.die_usage "No input string provided."
-[[ $# -ne 1 ]] && cu.errors.die_usage "Only one input string is allowed."
+[[ $# -gt 1 ]] && cu.errors.die_usage "Only one input string is allowed."
 
 input_string="${1}"
 
-IFS="${FLAGS_delimiter}" read -r -a parts <<< "${input_string}"
+if [[ -z "${input_string}" ]]; then
+  IFS="${FLAGS_delimiter}" read -r -a parts
+else 
+  IFS="${FLAGS_delimiter}" read -r -a parts <<< "${input_string}"
+fi
+
 cu.strings.join "${FLAGS_joiner}" "${parts[@]}"
