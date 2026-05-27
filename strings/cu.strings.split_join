@@ -32,9 +32,9 @@ done
 input_string="${1}"
 
 if [[ -z "${input_string}" ]]; then
-  IFS="${FLAGS_delimiter}" read -r -a parts
-else 
-  IFS="${FLAGS_delimiter}" read -r -a parts <<< "${input_string}"
+  input_string="$(cat)"
 fi
+
+eval parts=($(cu.strings.split "${FLAGS_delimiter}" "${input_string}"))
 
 cu.strings.join "${FLAGS_joiner}" "${parts[@]}"
