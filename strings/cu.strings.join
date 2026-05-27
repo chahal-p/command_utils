@@ -3,8 +3,4 @@ usage="Usage: $(basename "$0") <delimiter> [args...]"
 [[ "$1" == "-h" || "$1" == "--help" ]] && { echo "$usage" >&2; exit 0; }
 [[ $# -eq 0 ]] && { echo "$usage" >&2; exit 1; }
 [[ $# -lt 2 ]] && exit 0
-d="$1"
-f="$2"
-shift 2
-printf "%s" "$f"
-[ $# -gt 0 ] && printf "$d%s" "$@"
+cu.python -c "import sys; print(sys.argv[1].join(sys.argv[2:]))" "$@"
