@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+[[ $# -ne 2 ]] && { echo "Usage: $(basename "${0}") <delimiter> <input_string>" >&2; exit 1; }
+
+delimiter="${1}"
+input_string="${2}"
+
+cu.python -c "import sys; print(' '.join([\"'\" + x.replace(\"'\", \"'\\\''\") + \"'\" for x in sys.argv[2].split(sys.argv[1])]))" "${delimiter}" "${input_string}"
