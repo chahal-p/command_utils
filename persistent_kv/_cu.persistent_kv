@@ -51,8 +51,8 @@ function validate_namespace() {
 
 function validate_key() {
   [[ -n "${key}" ]] || die $CU_ERROR_USAGE "Key is required"
-  [[ "${#key}" -le 64 ]] || die $CU_ERROR_USAGE "Invalid key: key should be at most 64 characters long"
-  [[ "${key}" =~ ^[a-zA-Z0-9_-]+$ ]] || die $CU_ERROR_USAGE "Invalid key: key should match regex ^[a-zA-Z0-9_-]+$"
+  [[ "${#key}" -ge 1 && "${#key}" -le 64 ]] || die $CU_ERROR_USAGE "Invalid key: key size should be at least 1 and at most 64 characters long"
+  [[ "${key}" =~ ^[a-zA-Z0-9_.-]+$ ]] || die $CU_ERROR_USAGE "Invalid key: key should match regex ^[a-zA-Z0-9_.-]+$"
 }
 
 function acquire_lock() {
@@ -89,7 +89,7 @@ if [[ "${subcommand}" == "list" || "${subcommand}" == "list_path" ]]; then
     [[ "$FLAGS_CU_PERSISTENT_KV_SHOW_INTERNAL_NAMESPACES" == "true" ]] && exclude_internal_ns=("::")
     for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep -v "\/$" | grep -v "${exclude_internal_ns[@]}"); do
       [ -r "${STORAGE_DIR%/}/${x}" ] || continue
-      items+=("${x%.*}")
+      items+=("${x%%.*}")
     done
     [[ ${#items[@]} -eq 0 ]] && exit
     printf '%s\n' "${items[@]}" | sort -u
