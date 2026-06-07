@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 
 installer="$1"
-installation_path="$2"
-storage_path="$3"
+installation_path="$(realpath "$2")" || exit
+storage_dir="$(realpath "$3")" || exit
 
+config_file_path="${installation_path}/_cu.persistent_kv.configs"
 
-path="$(realpath "${storage_path}")" || exit
-storage_dir="${path%/}"
-
+[[ -f "$config_file_path" ]] && { echo "$config_file_path already exists skipping installation"; exit 0; }
 [[ -d "${storage_dir}" ]] || { echo "Storage directory ${storage_dir} does not exist." >&2; exit 40; }
 
 perms="$(ls -ld "${storage_dir}")"
@@ -16,5 +15,6 @@ perms="$(ls -ld "${storage_dir}")"
 
 cat << EOF | bash "${installer}" --name "_cu.persistent_kv.configs" --installation_path "${installation_path}" --content -
 #!/usr/bin/env bash
+BACKEND_CMD=_cu.persistent_kv_local
 STORAGE_DIR="${storage_dir}"
 EOF
