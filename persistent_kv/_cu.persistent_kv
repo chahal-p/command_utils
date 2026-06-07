@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# Usage: _cu.persistent_kv_local <subcommand> <namespace> <key> [mode] [owner_group] [etag]
+# Subcommands:
+#   list
+#   list_path
+#   get
+#   set
+#   set_overwrite
+#   delete
+#   chmod
+#   chown
+#   print_path
+
+# In set or set_overwrite subcommand, stdin is used as the value
+# etag is sha256 of existing value
+
+source cu.errors_lib.bash
+source _cu.persistent_kv.configs || cu.errors.die $CU_ERROR "Failed to load persistent_kv configs: _cu.persistent_kv.configs"
+[ -n "${BACKEND_CMD}" ] || cu.errors.die $CU_ERROR "Variable \$BACKEND_CMD is not defined in configs. Please use cu.persistent_kv.configure command to reconfigure."
+exec -a _cu.persistent_kv "${BACKEND_CMD}" "$@"
