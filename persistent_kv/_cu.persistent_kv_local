@@ -58,7 +58,9 @@ function validate_key() {
 }
 
 function acquire_lock() {
-  key_lock_path="${LOCK_DIR}/${namespace}.${key}.lock"
+  local namespace="$1"
+  local key="$2"
+  local key_lock_path="${LOCK_DIR}/${namespace}.${key}.lock"
   (umask 000 && touch "${key_lock_path}") || die $CU_ERROR "Failed to create lock file"
 
   lock_cmd="flock"
@@ -106,7 +108,7 @@ key_file="${STORAGE_DIR}/${namespace}.${key}"
 if [[ "${subcommand}" == "get" ]]; then
   validate_namespace "${namespace}"
   validate_key "${key}"
-  acquire_lock
+  acquire_lock "${namespace}" "${key}"
   [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
   [ -r "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable"
   cat "${key_file}" || die $CU_ERROR "Failed to get value for key ${key} in namespace ${namespace}"
@@ -133,7 +135,7 @@ fi
 if [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
   validate_namespace "${namespace}"
   validate_key "${key}"
-  acquire_lock
+  acquire_lock "${namespace}" "${key}"
   [ -w "${STORAGE_DIR}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: $USER does not have permission to write in storage directory '${STORAGE_DIR}'"
   if [ -f "${key_file}" ]; then
     [ "${subcommand}" == "set" ] && die $CU_ERROR_ALREADY_EXISTS "Key ${key} in namespace ${namespace} already exists"
@@ -154,7 +156,7 @@ fi
 if [[ "${subcommand}" == "delete" ]]; then
   validate_namespace "${namespace}"
   validate_key "${key}"
-  acquire_lock
+  acquire_lock "${namespace}" "${key}"
   [ -w "${STORAGE_DIR}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: $USER does not have permission to delete in storage directory '${STORAGE_DIR}'"
   [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
   [ -w "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not deletable"
@@ -167,7 +169,7 @@ fi
 if [[ "${subcommand}" == "chmod" ]]; then
   validate_namespace "${namespace}"
   validate_key "${key}"
-  acquire_lock
+  acquire_lock "${namespace}" "${key}"
   [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
   chmod "${mode}" "${key_file}" || die $CU_ERROR "Failed to set mode for key ${key} in namespace ${namespace}"
   exit
@@ -178,7 +180,7 @@ fi
 if [[ "${subcommand}" == "chown" ]]; then
   validate_namespace "${namespace}"
   validate_key "${key}"
-  acquire_lock
+  acquire_lock "${namespace}" "${key}"
   [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
   chown "${owner_group}" "${key_file}" || die $CU_ERROR "Failed to set owner/group for key ${key} in namespace ${namespace}"
   exit
