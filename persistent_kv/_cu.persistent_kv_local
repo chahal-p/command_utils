@@ -105,19 +105,28 @@ fi
 key_file="${STORAGE_DIR}/${namespace}.${key}"
 
 ########## BEGIN get subcommand ##########
-if [[ "${subcommand}" == "get" ]]; then
+function get() {
+  local namespace="${1}"
+  local key="${2}"
+  local key_file="${STORAGE_DIR}/${namespace}.${key}"
   validate_namespace "${namespace}"
   validate_key "${key}"
   acquire_lock "${namespace}" "${key}"
   [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
   [ -r "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable"
   cat "${key_file}" || die $CU_ERROR "Failed to get value for key ${key} in namespace ${namespace}"
+}
+if [[ "${subcommand}" == "get" ]]; then
+  get "${namespace}" "${key}"
   exit
 fi
 ########## END get subcommand ##########
 
 ########## BEGIN print_path subcommand ##########
-if [[ "${subcommand}" == "print_path" ]]; then
+function print_path() {
+  local namespace="${1}"
+  local key="${2}"
+  local key_file="${STORAGE_DIR}/${namespace}.${key}"
   validate_namespace "${namespace}"
   if [[ -n "${key}" ]]; then
     validate_key "${key}"
@@ -127,18 +136,26 @@ if [[ "${subcommand}" == "print_path" ]]; then
   else
     printf "%s" "${STORAGE_DIR}/${namespace}"
   fi
+}
+if [[ "${subcommand}" == "print_path" ]]; then
+  print_path "${namespace}" "${key}"
   exit
 fi
 ########## END print_path subcommand ##########
 
 ########## BEGIN set subcommand ##########
-if [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
+function set() {
+  local namespace="${1}"
+  local key="${2}"
+  local etag="${3}"
+  local force="${4}"
+  local key_file="${STORAGE_DIR}/${namespace}.${key}"
   validate_namespace "${namespace}"
   validate_key "${key}"
   acquire_lock "${namespace}" "${key}"
   [ -w "${STORAGE_DIR}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: $USER does not have permission to write in storage directory '${STORAGE_DIR}'"
   if [ -f "${key_file}" ]; then
-    [ "${subcommand}" == "set" ] && die $CU_ERROR_ALREADY_EXISTS "Key ${key} in namespace ${namespace} already exists"
+    [ "${force}" != "true" ] && die $CU_ERROR_ALREADY_EXISTS "Key ${key} in namespace ${namespace} already exists"
   else
     (umask 137 && touch "${key_file}") || die $CU_ERROR "Failed to create key ${key} in namespace ${namespace}"
   fi
@@ -148,6 +165,11 @@ if [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
     cat "${key_file}" 2>/dev/null | cu.sha256sum | grep -q "^${etag}$" || die $CU_ERROR_ETAG_MISMATCH "Etag mismatch for key ${key} in namespace ${namespace}"
   fi
   cat - > "${key_file}" || die $CU_ERROR "Failed to set value for key ${key} in namespace ${namespace}"
+}
+if [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
+  force="false"
+  [[ "${subcommand}" == "set_overwrite" ]] && force="true"
+  set "${namespace}" "${key}" "${etag}" "${force}"
   exit
 fi
 ########## END set subcommand ##########
