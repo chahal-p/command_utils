@@ -72,11 +72,16 @@ function acquire_lock() {
 
 ########## BEGIN list subcommand ##########
 
-if [[ "${subcommand}" == "list" || "${subcommand}" == "list_path" ]]; then
+function list() {
+  local namespace="${1}"
+  local subcommand="${2}"
+  local items=()
+  local x
+  local exclude_internal_ns=(-e ^${HIDDEN_NAMESPACE_PREFIX}.*)
+
   [ -r "${STORAGE_DIR}" ] || die $CU_ERROR "Permission denied: $USER does not have permission to read storage directory '${STORAGE_DIR}'"
   if [[ -n "${namespace}" || "${subcommand}" == "list_path" ]]; then
     validate_namespace "${namespace}"
-    items=()
     for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep -v "\/$" | grep "^${namespace}\."); do
       [ -r "${STORAGE_DIR%/}/${x}" ] || continue
       if [[ "${subcommand}" == "list_path" ]]; then
@@ -88,8 +93,6 @@ if [[ "${subcommand}" == "list" || "${subcommand}" == "list_path" ]]; then
     [[ ${#items[@]} -eq 0 ]] && die $CU_ERROR_NOT_FOUND "Namespace ${namespace} not found"
     printf '%s\n' "${items[@]}" | sort -u
   else
-    items=()
-    exclude_internal_ns=(-e ^${HIDDEN_NAMESPACE_PREFIX}.*)
     [[ "$FLAGS_CU_PERSISTENT_KV_SHOW_INTERNAL_NAMESPACES" == "true" ]] && exclude_internal_ns=("::")
     for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep -v "\/$" | grep -v "${exclude_internal_ns[@]}"); do
       [ -r "${STORAGE_DIR%/}/${x}" ] || continue
@@ -98,6 +101,10 @@ if [[ "${subcommand}" == "list" || "${subcommand}" == "list_path" ]]; then
     [[ ${#items[@]} -eq 0 ]] && exit
     printf '%s\n' "${items[@]}" | sort -u
   fi
+}
+
+if [[ "${subcommand}" == "list" || "${subcommand}" == "list_path" ]]; then
+  list "${namespace}" "${subcommand}"
   exit
 fi
 ########## END list subcommand ##########
