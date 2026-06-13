@@ -10,6 +10,7 @@ key="$3"
 mode="$4"
 owner_group="$5"
 etag="$6"
+format="$7"
 
 USER="$(whoami)"
 
@@ -185,6 +186,38 @@ function chown() {
   chown "${owner_group}" "${key_file}" || die $CU_ERROR "Failed to set owner/group for key ${key} in namespace ${namespace}"
 }
 
+function concat() {
+  local namespace="${1}"
+  local comma_separated_key="${2}"
+  local format="${3}"
+  local keys=()
+  local key
+  validate_namespace "${namespace}"
+  if [[ -z "${comma_separated_key}" ]]; then
+    keys=( $(list "${namespace}" "list") ) || exit
+  else
+    IFS=',' read -r -a keys <<< "${comma_separated_key}"
+  fi
+  if [[ -z "$format" ]]; then
+    for key in "${keys[@]}"; do
+      get "${namespace}" "${key}" || exit
+      printf "\n"
+    done
+  elif [[ "$format" == "shellvar" ]]; then
+    for key in "${keys[@]}"; do
+      val="$(get "${namespace}" "${key}")" || exit
+      printf "%s=%s;\n" "${key}" "$(cu.strings.quoted "${val}")"
+    done
+  elif [[ "$format" == "comma_separated" ]]; then
+    for key in "${keys[@]}"; do
+      val="$(get "${namespace}" "${key}")" || exit
+      printf "%s,%s\n" "${key}" "${val}"
+    done
+  else
+    die $CU_ERROR_USAGE "Unknown format: ${format}"
+  fi
+}
+
 if [[ "${subcommand}" == "list" || "${subcommand}" == "list_path" ]]; then
   list "${namespace}" "${subcommand}"
 elif [[ "${subcommand}" == "get" ]]; then
@@ -202,19 +235,7 @@ elif [[ "${subcommand}" == "chmod" ]]; then
 elif [[ "${subcommand}" == "chown" ]]; then
   chown "${namespace}" "${key}" "${owner_group}"
 elif [[ "${subcommand}" == "concat" ]]; then
-  validate_namespace "${namespace}"
-  if [[ -z "${key}" ]]; then
-    for x in $(list "${namespace}" "list"); do
-      get "${namespace}" "${x}"
-      printf "\n"
-    done
-  else
-    IFS=',' read -r -a keys <<< "${key}"
-    for key in "${keys[@]}"; do
-      get "${namespace}" "${key}"
-      printf "\n"
-    done
-  fi
+  concat "${namespace}" "${key}" "${format}"
 else
   usage
   [[ -z "${subcommand}" ]] && die $CU_ERROR_USAGE "No subcommand specified"
