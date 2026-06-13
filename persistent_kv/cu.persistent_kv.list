@@ -49,7 +49,7 @@ done
 args=()
 [ -n "${FLAGS_namespace}" ] && args+=("${FLAGS_namespace}")
 if [[ "$FLAGS_CU_PERSISTENT_KV_SHOW_INTERNAL_NAMESPACES" == "true" ]]; then
-  _cu.persistent_kv list "${args[@]}" | grep -v -e "^${HIDDEN_NAMESPACE_PREFIX}.*"
-else
   _cu.persistent_kv list "${args[@]}"
+else
+  _cu.persistent_kv list "${args[@]}" | grep -v -e "^${HIDDEN_NAMESPACE_PREFIX}.*"
 fi
