@@ -47,19 +47,15 @@ done
 index_names=()
 
 user=$(whoami)
-index_ns_path="$(_cu.persistent_kv print_path "${NAMESPACE_PREFIX}_index_${FLAGS_shell_type}_${user}")"
-readarray -t names < <(_cu.persistent_kv list "${NAMESPACE_PREFIX}_data_${FLAGS_shell_type}_${user}" 2>/dev/null)
-for name in "${names[@]}"; do
-  index="$(cat "${index_ns_path}.${name}")"
-  index_names+=("$FLAGS_shell_type:$index:$name")
+
+
+IFS=$'\n' sorted_array=($(_cu.persistent_kv concat "${NAMESPACE_PREFIX}_index_${FLAGS_shell_type}_${user}" "" comma_separated | sort -t, -k2n,2n -k1,1))
+
+keys=()
+
+for name_index in "${sorted_array[@]}"; do
+  IFS=',' read -r name index <<< "$name_index"
+  keys+=("${name}")
 done
 
-IFS=$'\n' sorted_array=($(printf "%s\n" "${index_names[@]}" | sort -t: -k1,1 -k2n,2n -k3,3))
-
-data_ns_path="$(_cu.persistent_kv print_path "${NAMESPACE_PREFIX}_data_${FLAGS_shell_type}_${user}")"
-for index_name in "${sorted_array[@]}"; do
-  IFS=':' read -r sh index name <<< "$index_name"
-  echo "# ${sh} script from: $name"
-  cat "${data_ns_path}.${name}"
-  echo ""
-done
+_cu.persistent_kv concat "${NAMESPACE_PREFIX}_data_${FLAGS_shell_type}_${user}" "$(cu.strings.join ',' "${keys[@]}")"
