@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
 
-# Usage: _cu.persistent_kv_local <subcommand> <namespace> <key> [mode] [owner_group] [etag]
-# Subcommands:
-#   list
-#   list_path
-#   get
-#   set
-#   set_overwrite
-#   delete
-#   chmod
-#   chown
-#   print_path
+function usage() {
+  [ "$FLAGS_CU_PERSISTENT_KV_DEBUG_MODE" == "true" ] || return 0
+  echo "Usage: $(basename "${0}") <subcommand> [args...]"
+  echo "Subcommands:"
+  echo "  list [<namespace>]"
+  echo "  list_path <namespace>"
+  echo "  get <namespace> <key>"
+  echo "  set <namespace> <key>"
+  echo "  set_overwrite <namespace> <key>"
+  echo "  delete <namespace> <key>"
+  echo "  chmod <namespace> <key> <mode>"
+  echo "  chown <namespace> <key> <owner_group>"
+  echo "  print_path <namespace> [<key>]"
+  echo "  concat <namespace> [<key_1>,<key_2>,...] [shellvar | comma_separated]"
+  echo ""
+  echo "In set or set_overwrite subcommand, stdin is used as the value"
+}
+
+[[ "$1" == "--help" || "$1" == "-h" ]] && { usage; exit 0 }
 
 # In set or set_overwrite subcommand, stdin is used as the value
 # etag is sha256 of existing value
