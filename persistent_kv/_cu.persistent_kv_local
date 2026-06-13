@@ -102,8 +102,6 @@ if [[ "${subcommand}" == "list" || "${subcommand}" == "list_path" ]]; then
 fi
 ########## END list subcommand ##########
 
-key_file="${STORAGE_DIR}/${namespace}.${key}"
-
 ########## BEGIN get subcommand ##########
 function get() {
   local namespace="${1}"
