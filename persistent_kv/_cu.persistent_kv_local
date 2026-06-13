@@ -14,24 +14,6 @@ function die() {
   cu.errors.die "$@"
 }
 
-function usage() {
-  [ "$FLAGS_CU_PERSISTENT_KV_DEBUG_MODE" == "true" ] || return 0
-  echo "Usage: $(basename "${0}") <subcommand> <namespace> <key> [mode] [owner_group] [etag]"
-  echo "Subcommands:"
-  echo "  list [<namespace>]"
-  echo "  list_path <namespace>"
-  echo "  get <namespace> <key>"
-  echo "  set <namespace> <key>"
-  echo "  set_overwrite <namespace> <key>"
-  echo "  delete <namespace> <key>"
-  echo "  chmod <namespace> <key> <mode>"
-  echo "  chown <namespace> <key> <owner_group>"
-  echo "  print_path <namespace> [<key>]"
-  echo "  concat <namespace> [<key_1>,<key_2>,...] [shellvar | comma_separated]"
-  echo ""
-  echo "In set or set_overwrite subcommand, stdin is used as the value"
-}
-
 source _cu.persistent_kv.configs || die $CU_ERROR "Failed to load persistent_kv configs"
 LOCK_DIR="/tmp/cu_persistent_kv_locks"
 
@@ -232,7 +214,6 @@ elif [[ "${subcommand}" == "chown" ]]; then
 elif [[ "${subcommand}" == "concat" ]]; then
   concat "$1" "$2" "$3"
 else
-  usage
   [[ -z "${subcommand}" ]] && die $CU_ERROR_USAGE "No subcommand specified"
   die $CU_ERROR_USAGE "Unknown subcommand: ${subcommand}"
 fi
