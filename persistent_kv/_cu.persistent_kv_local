@@ -31,6 +31,7 @@ function usage() {
   echo "  chmod"
   echo "  chown"
   echo "  print_path"
+  echo "  concat"
   echo ""
   echo "In set or set_overwrite subcommand, stdin is used as the value"
 }
