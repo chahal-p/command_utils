@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 function usage() {
-  [ "$FLAGS_CU_PERSISTENT_KV_DEBUG_MODE" == "true" ] || return 0
   echo "Usage: $(basename "${0}") <subcommand> [args...]"
   echo "Subcommands:"
   echo "  list [<namespace>]"
