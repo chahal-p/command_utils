@@ -11,8 +11,6 @@ mode="$4"
 owner_group="$5"
 etag="$6"
 
-HIDDEN_NAMESPACE_PREFIX="__cd97e6__"
-
 USER="$(whoami)"
 
 function die() {
@@ -77,7 +75,6 @@ function list() {
   local subcommand="${2}"
   local items=()
   local x
-  local exclude_internal_ns=(-e ^${HIDDEN_NAMESPACE_PREFIX}.*)
 
   [ -r "${STORAGE_DIR}" ] || die $CU_ERROR "Permission denied: $USER does not have permission to read storage directory '${STORAGE_DIR}'"
   if [[ -n "${namespace}" || "${subcommand}" == "list_path" ]]; then
