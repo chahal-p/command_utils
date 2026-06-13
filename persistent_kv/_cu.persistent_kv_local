@@ -145,6 +145,7 @@ function chown() {
 }
 
 function concat() {
+  # No locking is performed while reading files
   local namespace="${1}"
   local comma_separated_key="${2}"
   local format="${3}"
@@ -163,13 +164,11 @@ function concat() {
     done
   elif [[ "$format" == "shellvar" ]]; then
     for key in "${keys[@]}"; do
-      val="$(get "${namespace}" "${key}")" || exit
-      printf "%s=%s;\n" "${key}" "$(cu.strings.quoted "${val}")"
+      printf "%s=%s;\n" "${key}" "$(cu.strings.quoted "$(cat "${STORAGE_DIR}/${namespace}.${key}")")" || exit
     done
   elif [[ "$format" == "comma_separated" ]]; then
     for key in "${keys[@]}"; do
-      val="$(get "${namespace}" "${key}")" || exit
-      printf "%s,%s\n" "${key}" "${val}"
+      printf "%s,%s\n" "${key}" "$(cu.strings.quoted "$(cat "${STORAGE_DIR}/${namespace}.${key}")")" || exit
     done
   else
     die $CU_ERROR_USAGE "Unknown format: ${format}"
