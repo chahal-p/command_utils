@@ -6,7 +6,7 @@ function usage() {
   echo "  list [<namespace>]"
   echo "  get <namespace> <key>"
   echo "  set <namespace> <key> [<etag>"]
-  echo "  set_overwrite <namespace> <key> [<etag>"]"
+  echo "  set_overwrite <namespace> <key> [<etag>]"
   echo "  delete <namespace> <key>"
   echo "  chmod <namespace> <key> <mode>"
   echo "  chown <namespace> <key> <owner_group>"
