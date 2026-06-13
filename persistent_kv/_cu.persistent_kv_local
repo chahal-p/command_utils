@@ -200,6 +200,20 @@ elif [[ "${subcommand}" == "chmod" ]]; then
   chmod "${namespace}" "${key}" "${mode}"
 elif [[ "${subcommand}" == "chown" ]]; then
   chown "${namespace}" "${key}" "${owner_group}"
+elif [[ "${subcommand}" == "concat" ]]; then
+  validate_namespace "${namespace}"
+  if [[ -z "${key}" ]]; then
+    for x in $(list "${namespace}" "list"); do
+      get "${namespace}" "${x}"
+      printf "\n"
+    done
+  else
+    IFS=',' read -r -a keys <<< "${key}"
+    for key in "${keys[@]}"; do
+      get "${namespace}" "${key}"
+      printf "\n"
+    done
+  fi
 else
   usage
   [[ -z "${subcommand}" ]] && die $CU_ERROR_USAGE "No subcommand specified"
