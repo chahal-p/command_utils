@@ -5,12 +5,7 @@ set -eo pipefail
 source cu.errors_lib.bash
 
 subcommand="$1"
-namespace="$2"
-key="$3"
-mode="$4"
-owner_group="$5"
-etag="$6"
-format="$7"
+shift 1
 
 USER="$(whoami)"
 
@@ -23,16 +18,16 @@ function usage() {
   [ "$FLAGS_CU_PERSISTENT_KV_DEBUG_MODE" == "true" ] || return 0
   echo "Usage: $(basename "${0}") <subcommand> <namespace> <key> [mode] [owner_group] [etag]"
   echo "Subcommands:"
-  echo "  list"
-  echo "  list_path"
-  echo "  get"
-  echo "  set"
-  echo "  set_overwrite"
-  echo "  delete"
-  echo "  chmod"
-  echo "  chown"
-  echo "  print_path"
-  echo "  concat"
+  echo "  list [<namespace>]"
+  echo "  list_path <namespace>"
+  echo "  get <namespace> <key>"
+  echo "  set <namespace> <key>"
+  echo "  set_overwrite <namespace> <key>"
+  echo "  delete <namespace> <key>"
+  echo "  chmod <namespace> <key> <mode>"
+  echo "  chown <namespace> <key> <owner_group>"
+  echo "  print_path <namespace> [<key>]"
+  echo "  concat <namespace> [<key_1>,<key_2>,...] [shellvar | comma_separated]"
   echo ""
   echo "In set or set_overwrite subcommand, stdin is used as the value"
 }
@@ -219,23 +214,23 @@ function concat() {
 }
 
 if [[ "${subcommand}" == "list" || "${subcommand}" == "list_path" ]]; then
-  list "${namespace}" "${subcommand}"
+  list "$1" "${subcommand}"
 elif [[ "${subcommand}" == "get" ]]; then
-  get "${namespace}" "${key}"
+  get "$1" "$2"
 elif [[ "${subcommand}" == "print_path" ]]; then
-  print_path "${namespace}" "${key}"
+  print_path "$1" "$2"
 elif [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
   force="false"
   [[ "${subcommand}" == "set_overwrite" ]] && force="true"
-  set "${namespace}" "${key}" "${etag}" "${force}"
+  set "$1" "$2" "$3" "${force}"
 elif [[ "${subcommand}" == "delete" ]]; then
-  delete "${namespace}" "${key}"
+  delete "$1" "$2"
 elif [[ "${subcommand}" == "chmod" ]]; then
-  chmod "${namespace}" "${key}" "${mode}"
+  chmod "$1" "$2" "$3"
 elif [[ "${subcommand}" == "chown" ]]; then
-  chown "${namespace}" "${key}" "${owner_group}"
+  chown "$1" "$2" "$3"
 elif [[ "${subcommand}" == "concat" ]]; then
-  concat "${namespace}" "${key}" "${format}"
+  concat "$1" "$2" "$3"
 else
   usage
   [[ -z "${subcommand}" ]] && die $CU_ERROR_USAGE "No subcommand specified"
