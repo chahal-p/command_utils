@@ -68,8 +68,6 @@ function acquire_lock() {
   $lock_cmd 200
 }
 
-########## BEGIN list subcommand ##########
-
 function list() {
   local namespace="${1}"
   local subcommand="${2}"
@@ -99,13 +97,6 @@ function list() {
   fi
 }
 
-if [[ "${subcommand}" == "list" || "${subcommand}" == "list_path" ]]; then
-  list "${namespace}" "${subcommand}"
-  exit
-fi
-########## END list subcommand ##########
-
-########## BEGIN get subcommand ##########
 function get() {
   local namespace="${1}"
   local key="${2}"
@@ -118,13 +109,6 @@ function get() {
   cat "${key_file}" || die $CU_ERROR "Failed to get value for key ${key} in namespace ${namespace}"
 }
 
-if [[ "${subcommand}" == "get" ]]; then
-  get "${namespace}" "${key}"
-  exit
-fi
-########## END get subcommand ##########
-
-########## BEGIN print_path subcommand ##########
 function print_path() {
   local namespace="${1}"
   local key="${2}"
@@ -140,13 +124,6 @@ function print_path() {
   fi
 }
 
-if [[ "${subcommand}" == "print_path" ]]; then
-  print_path "${namespace}" "${key}"
-  exit
-fi
-########## END print_path subcommand ##########
-
-########## BEGIN set subcommand ##########
 function set() {
   local namespace="${1}"
   local key="${2}"
@@ -170,15 +147,6 @@ function set() {
   cat - > "${key_file}" || die $CU_ERROR "Failed to set value for key ${key} in namespace ${namespace}"
 }
 
-if [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
-  force="false"
-  [[ "${subcommand}" == "set_overwrite" ]] && force="true"
-  set "${namespace}" "${key}" "${etag}" "${force}"
-  exit
-fi
-########## END set subcommand ##########
-
-########## BEGIN delete subcommand ##########
 function delete() {
   local namespace="${1}"
   local key="${2}"
@@ -192,13 +160,6 @@ function delete() {
   rm "${key_file}" > /dev/null 2>&1 || die $CU_ERROR "Failed to delete key ${key} in namespace ${namespace}"
 }
 
-if [[ "${subcommand}" == "delete" ]]; then
-  delete "${namespace}" "${key}"
-  exit
-fi
-########## END delete subcommand ##########
-
-########## BEGIN chmod subcommand ##########
 function chmod() {
   local namespace="${1}"
   local key="${2}"
@@ -211,13 +172,6 @@ function chmod() {
   chmod "${mode}" "${key_file}" || die $CU_ERROR "Failed to set mode for key ${key} in namespace ${namespace}"
 }
 
-if [[ "${subcommand}" == "chmod" ]]; then
-  chmod "${namespace}" "${key}" "${mode}"
-  exit
-fi
-########## END chmod subcommand ##########
-
-########## BEGIN chown subcommand ##########
 function chown() {
   local namespace="${1}"
   local key="${2}"
@@ -230,12 +184,24 @@ function chown() {
   chown "${owner_group}" "${key_file}" || die $CU_ERROR "Failed to set owner/group for key ${key} in namespace ${namespace}"
 }
 
-if [[ "${subcommand}" == "chown" ]]; then
+if [[ "${subcommand}" == "list" || "${subcommand}" == "list_path" ]]; then
+  list "${namespace}" "${subcommand}"
+elif [[ "${subcommand}" == "get" ]]; then
+  get "${namespace}" "${key}"
+elif [[ "${subcommand}" == "print_path" ]]; then
+  print_path "${namespace}" "${key}"
+elif [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
+  force="false"
+  [[ "${subcommand}" == "set_overwrite" ]] && force="true"
+  set "${namespace}" "${key}" "${etag}" "${force}"
+elif [[ "${subcommand}" == "delete" ]]; then
+  delete "${namespace}" "${key}"
+elif [[ "${subcommand}" == "chmod" ]]; then
+  chmod "${namespace}" "${key}" "${mode}"
+elif [[ "${subcommand}" == "chown" ]]; then
   chown "${namespace}" "${key}" "${owner_group}"
-  exit
+else
+  usage
+  [[ -z "${subcommand}" ]] && die $CU_ERROR_USAGE "No subcommand specified"
+  die $CU_ERROR_USAGE "Unknown subcommand: ${subcommand}"
 fi
-########## END chown subcommand ##########
-
-usage
-[[ -z "${subcommand}" ]] && die $CU_ERROR_USAGE "No subcommand specified"
-die $CU_ERROR_USAGE "Unknown subcommand: ${subcommand}"
