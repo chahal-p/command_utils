@@ -84,21 +84,6 @@ function get() {
   cat "${key_file}" || die $CU_ERROR "Failed to get value for key ${key} in namespace ${namespace}"
 }
 
-function print_path() {
-  local namespace="${1}"
-  local key="${2}"
-  local key_file="${STORAGE_DIR}/${namespace}.${key}"
-  validate_namespace "${namespace}"
-  if [[ -n "${key}" ]]; then
-    validate_key "${key}"
-    [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
-    [ -r "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable"
-    printf "%s" "${key_file}"
-  else
-    printf "%s" "${STORAGE_DIR}/${namespace}"
-  fi
-}
-
 function set() {
   local namespace="${1}"
   local key="${2}"
@@ -195,8 +180,6 @@ if [[ "${subcommand}" == "list" ]]; then
   list "$1" "${subcommand}"
 elif [[ "${subcommand}" == "get" ]]; then
   get "$1" "$2"
-elif [[ "${subcommand}" == "print_path" ]]; then
-  print_path "$1" "$2"
 elif [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
   force="false"
   [[ "${subcommand}" == "set_overwrite" ]] && force="true"
