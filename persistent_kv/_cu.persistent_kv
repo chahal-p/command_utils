@@ -18,7 +18,7 @@ function usage() {
   echo "In set or set_overwrite subcommand, stdin is used as the value"
 }
 
-[[ "$1" == "--help" || "$1" == "-h" ]] && { usage; exit 0 }
+[[ "$1" == "--help" || "$1" == "-h" ]] && { usage; exit 0; }
 
 # In set or set_overwrite subcommand, stdin is used as the value
 # etag is sha256 of existing value
