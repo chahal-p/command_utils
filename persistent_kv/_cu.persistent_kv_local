@@ -116,6 +116,7 @@ function get() {
   [ -r "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable"
   cat "${key_file}" || die $CU_ERROR "Failed to get value for key ${key} in namespace ${namespace}"
 }
+
 if [[ "${subcommand}" == "get" ]]; then
   get "${namespace}" "${key}"
   exit
@@ -137,6 +138,7 @@ function print_path() {
     printf "%s" "${STORAGE_DIR}/${namespace}"
   fi
 }
+
 if [[ "${subcommand}" == "print_path" ]]; then
   print_path "${namespace}" "${key}"
   exit
@@ -166,6 +168,7 @@ function set() {
   fi
   cat - > "${key_file}" || die $CU_ERROR "Failed to set value for key ${key} in namespace ${namespace}"
 }
+
 if [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
   force="false"
   [[ "${subcommand}" == "set_overwrite" ]] && force="true"
@@ -175,7 +178,10 @@ fi
 ########## END set subcommand ##########
 
 ########## BEGIN delete subcommand ##########
-if [[ "${subcommand}" == "delete" ]]; then
+function delete() {
+  local namespace="${1}"
+  local key="${2}"
+  local key_file="${STORAGE_DIR}/${namespace}.${key}"
   validate_namespace "${namespace}"
   validate_key "${key}"
   acquire_lock "${namespace}" "${key}"
@@ -183,28 +189,48 @@ if [[ "${subcommand}" == "delete" ]]; then
   [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
   [ -w "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not deletable"
   rm "${key_file}" > /dev/null 2>&1 || die $CU_ERROR "Failed to delete key ${key} in namespace ${namespace}"
+}
+
+if [[ "${subcommand}" == "delete" ]]; then
+  delete "${namespace}" "${key}"
   exit
 fi
 ########## END delete subcommand ##########
 
 ########## BEGIN chmod subcommand ##########
-if [[ "${subcommand}" == "chmod" ]]; then
+function chmod() {
+  local namespace="${1}"
+  local key="${2}"
+  local mode="${3}"
+  local key_file="${STORAGE_DIR}/${namespace}.${key}"
   validate_namespace "${namespace}"
   validate_key "${key}"
   acquire_lock "${namespace}" "${key}"
   [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
   chmod "${mode}" "${key_file}" || die $CU_ERROR "Failed to set mode for key ${key} in namespace ${namespace}"
+}
+
+if [[ "${subcommand}" == "chmod" ]]; then
+  chmod "${namespace}" "${key}" "${mode}"
   exit
 fi
 ########## END chmod subcommand ##########
 
 ########## BEGIN chown subcommand ##########
-if [[ "${subcommand}" == "chown" ]]; then
+function chown() {
+  local namespace="${1}"
+  local key="${2}"
+  local owner_group="${3}"
+  local key_file="${STORAGE_DIR}/${namespace}.${key}"
   validate_namespace "${namespace}"
   validate_key "${key}"
   acquire_lock "${namespace}" "${key}"
   [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
   chown "${owner_group}" "${key_file}" || die $CU_ERROR "Failed to set owner/group for key ${key} in namespace ${namespace}"
+}
+
+if [[ "${subcommand}" == "chown" ]]; then
+  chown "${namespace}" "${key}" "${owner_group}"
   exit
 fi
 ########## END chown subcommand ##########
