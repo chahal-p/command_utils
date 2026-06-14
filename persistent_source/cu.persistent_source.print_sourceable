@@ -49,7 +49,7 @@ index_names=()
 user=$(whoami)
 
 
-IFS=$'\n' sorted_array=($(_cu.persistent_kv concat "${NAMESPACE_PREFIX}_index_${FLAGS_shell_type}_${user}" "" comma_separated | sort -t, -k2n,2n -k1,1))
+IFS=$'\n' sorted_array=($(_cu.persistent_kv concat "${NAMESPACE_PREFIX}_index_${FLAGS_shell_type}_${user}" "" comma_separated_key_values | sort -t, -k2n,2n -k1,1))
 
 keys=()
 
@@ -58,4 +58,4 @@ for name_index in "${sorted_array[@]}"; do
   keys+=("${name}")
 done
 
-_cu.persistent_kv concat "${NAMESPACE_PREFIX}_data_${FLAGS_shell_type}_${user}" "$(cu.strings.join ',' "${keys[@]}")"
+_cu.persistent_kv concat "${NAMESPACE_PREFIX}_data_${FLAGS_shell_type}_${user}" "$(cu.strings.join ',' "${keys[@]}")" "values"
