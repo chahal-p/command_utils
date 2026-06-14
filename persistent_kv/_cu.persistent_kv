@@ -9,9 +9,9 @@ Subcommands:
   set <namespace> <key> [<etag>"]
   set_overwrite <namespace> <key> [<etag>]"
   delete <namespace> <key>
+  concat <namespace> [<key_1>,<key_2>,...] [<key_value_format>]
   chmod <namespace> <key> <mode>
   chown <namespace> <key> <owner_group>
-  concat <namespace> [<key_1>,<key_2>,...] [<key_value_format>]
 
 Details:
   etag              : sha256 of existing value
@@ -23,6 +23,7 @@ Details:
                         comma_separated: key,value
   set               : stdin is used as the value
   set_overwrite     : stdin is used as the value
+  owner_group       : value format is <user>[:<group>]
 EOF
 }
 
