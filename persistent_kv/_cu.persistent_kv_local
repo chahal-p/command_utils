@@ -157,16 +157,16 @@ function concat() {
   else
     IFS=',' read -r -a keys <<< "${comma_separated_key}"
   fi
-  if [[ -z "$format" ]]; then
+  if [[ "$format" == "values" ]]; then
     for key in "${keys[@]}"; do
       get "${namespace}" "${key}" || exit
       printf "\n"
     done
-  elif [[ "$format" == "shellvar" ]]; then
+  elif [[ "$format" == "shellvars" ]]; then
     for key in "${keys[@]}"; do
       printf "%s=%s;\n" "${key}" "$(cu.strings.quoted "$(cat "${STORAGE_DIR}/${namespace}.${key}")")" || exit
     done
-  elif [[ "$format" == "comma_separated" ]]; then
+  elif [[ "$format" == "comma_separated_key_values" ]]; then
     for key in "${keys[@]}"; do
       printf "%s,%s\n" "${key}" "$(cu.strings.quoted "$(cat "${STORAGE_DIR}/${namespace}.${key}")")" || exit
     done
