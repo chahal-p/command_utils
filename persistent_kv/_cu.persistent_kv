@@ -14,7 +14,7 @@ Subcommands:
   chown <namespace> <key> <owner_group>
 
 Details:
-  etag              : sha256 of existing value
+  etag              : sha256 of existing value (for new entry set it as empty string \`sha256sum < <("")\`)
   concat            : Content for each key/value pair is concatenated with an empty line in between based on key_value_format parameter.
   key_value_format  : Key and value formated before concat operation
                       Supported formats:
