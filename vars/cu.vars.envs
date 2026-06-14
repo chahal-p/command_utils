@@ -5,4 +5,4 @@ source _cu.vars.configs || exit 1
 user="$(whoami)"
 namespace="${NAMESPACE_PREFIX}_${user}"
 
-_cu.persistent_kv concat "${namespace}" "" shellvar
+_cu.persistent_kv concat "${namespace}" "" shellvars
