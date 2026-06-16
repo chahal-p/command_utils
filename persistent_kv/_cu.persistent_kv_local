@@ -167,7 +167,7 @@ function concat() {
     for key in "${keys[@]}"; do
       printf "%s=%s;\n" "${key}" "$(cu.strings.quoted "$(get "${namespace}" "${key}" "true")")" || exit
     done
-  elif [[ "$format" == "comma_separated_key_values" ]]; then
+  elif [[ "$format" == "comma_separated" ]]; then
     for key in "${keys[@]}"; do
       printf "%s,%s\n" "${key}" "$(cu.strings.quoted "$(get "${namespace}" "${key}" "true")")" || exit
     done
