@@ -79,7 +79,7 @@ function get() {
   local key_file="${STORAGE_DIR}/${namespace}.${key}"
   validate_namespace "${namespace}"
   validate_key "${key}"
-  [ $no_lock == "true" ] || acquire_lock "${namespace}" "${key}"
+  [ "$no_lock" == "true" ] || acquire_lock "${namespace}" "${key}"
   [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
   [ -r "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable"
   cat "${key_file}" || die $CU_ERROR "Failed to get value for key ${key} in namespace ${namespace}"
