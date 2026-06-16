@@ -75,10 +75,11 @@ function list() {
 function get() {
   local namespace="${1}"
   local key="${2}"
+  local no_lock="${3}"
   local key_file="${STORAGE_DIR}/${namespace}.${key}"
   validate_namespace "${namespace}"
   validate_key "${key}"
-  acquire_lock "${namespace}" "${key}"
+  [ $no_lock == "true" ] || acquire_lock "${namespace}" "${key}"
   [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
   [ -r "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable"
   cat "${key_file}" || die $CU_ERROR "Failed to get value for key ${key} in namespace ${namespace}"
@@ -159,16 +160,16 @@ function concat() {
   fi
   if [[ "$format" == "values" ]]; then
     for key in "${keys[@]}"; do
-      get "${namespace}" "${key}" || exit
+      get "${namespace}" "${key}" "true" || exit
       printf "\n"
     done
   elif [[ "$format" == "shellvars" ]]; then
     for key in "${keys[@]}"; do
-      printf "%s=%s;\n" "${key}" "$(cu.strings.quoted "$(cat "${STORAGE_DIR}/${namespace}.${key}")")" || exit
+      printf "%s=%s;\n" "${key}" "$(cu.strings.quoted "$(get "${namespace}" "${key}" "true")")" || exit
     done
   elif [[ "$format" == "comma_separated_key_values" ]]; then
     for key in "${keys[@]}"; do
-      printf "%s,%s\n" "${key}" "$(cu.strings.quoted "$(cat "${STORAGE_DIR}/${namespace}.${key}")")" || exit
+      printf "%s,%s\n" "${key}" "$(cu.strings.quoted "$(get "${namespace}" "${key}" "true")")" || exit
     done
   else
     die $CU_ERROR_USAGE "Unknown format: ${format}"
