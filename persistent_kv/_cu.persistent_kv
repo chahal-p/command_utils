@@ -19,7 +19,7 @@ Details:
   key_value_format  : Key and value formated before concat operation
                       Supported formats:
                         values: values of keys concatenated
-                        shellvar: KEY1='<value>'
+                        shellvars: KEY1='<value>'
                         comma_separated: key,value
   set               : stdin is used as the value
   set_overwrite     : stdin is used as the value
