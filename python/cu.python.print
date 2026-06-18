@@ -1,2 +1,4 @@
 #!/usr/bin/env bash
-cu.python.exec "print($(cu.strings.join ' ' "$@"))"
+script="$1"
+shift || exit
+cu.python.exec "import sys; ARGS = sys.argv[1:]; print($script)" "$@"
