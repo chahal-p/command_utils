@@ -1,5 +1,21 @@
 #!/usr/bin/env bash
 
+source cu.errors_lib.bash || { echo "Not able to source cu.errors_lib.bash"; exit 1; }
+
+usage() {
+  cat<<EOF
+Usage: $(basename "$0") [-h | --help] [<message>]
+
+It keeps prompting in loop until either yes or no is provided as input
+
+Default message is 'Confirm' if none if provided.
+EOF
+exit 0
+}
+
+[[ "$1" == "-h" || "$1" == "--help" ]] && usage
+[ $# -le 1 ] || cu.errors.die_usage "Either one <message> arg or -h|--help can be provided."
+
 msg="Confirm"
 [ -n "$1" ] && msg="$1"
 
