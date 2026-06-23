@@ -5,3 +5,9 @@ function _complete_cu.command() {
   COMPREPLY=( $(compgen -f -W "-c --confirm -v --verbose -l --line -t --timeout -s --signal -k --kill_after --lock_file --nonblock -h --help" -- "$cur") )
 }
 complete -F _complete_cu.command cu.command
+
+function _complete_cu.vim_exec() {
+  local cur="${COMP_WORDS[COMP_CWORD]}"
+  COMPREPLY=( $(compgen -fc -- "$cur") )
+}
+complete -F _complete_cu.vim_exec cu.vim_exec
