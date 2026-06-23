@@ -1,2 +1,16 @@
-#!/usr/bin/env bash
-exec xxd -ps -c 0 "$@"
+#!/usr/bin/env bash#!/usr/bin/env bash
+source cu.errors_lib.bash || { echo "Not able to source cu.errors_lib.bash"; exit 1; }
+
+usage() {
+  cat<<EOF
+Usage: $(basename "$0") [-h | --help]
+
+Read binary data from stdin and convert to hex string
+EOF
+exit 0
+}
+
+[[ "$1" == "-h" || "$1" == "--help" ]] && usage
+[ $# -eq 0 ] || cu.errors.die_usage "Supported flags are -h/--help"
+
+exec xxd -ps -c 0
