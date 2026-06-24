@@ -15,6 +15,6 @@ perms="$(ls -ld "${storage_dir}")"
 
 cat << EOF | bash "${installer}" --name "_cu.persistent_kv.configs" --installation_path "${installation_path}" --content -
 #!/usr/bin/env bash
-BACKEND_CMD=_cu.persistent_kv_local
 STORAGE_DIR="${storage_dir}"
+BACKEND_CMD=( _cu.persistent_kv_local "$STORAGE_DIR" )
 EOF
