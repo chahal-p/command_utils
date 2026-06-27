@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source cu.errors_lib.bash || { echo "Not able to source cu.errors_lib.bash"; exit 1; }
+source cu.errors_lib.bash || { echo "Not able to source cu.errors_lib.bash" >&2; exit 1; }
 
 usage() {
   cat<<EOF
