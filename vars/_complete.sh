@@ -10,12 +10,12 @@ _complete_cu.vars() {
     if [[ $cur_word == "-"* ]] ; then
       COMPREPLY=( $(compgen -W "-d --delete --envs -h --help" -- "$cur_word") )
     else
-      COMPREPLY=( $(compgen -W "$(cu.vars | xargs)" -- "$cur_word") )
+      COMPREPLY=( $(compgen -W "$(cu.vars | xargs)" -- | grep -i "$cur_word") )
     fi
   elif [[ "$prev_word" == "--delete" || "$prev_word" == "-d" ]] ; then
-    COMPREPLY=( $(compgen -W "$(cu.vars | xargs)" -- "$cur_word") )
+    COMPREPLY=( $(compgen -W "$(cu.vars | xargs)" -- | grep -i "$cur_word") )
   elif [[ "$prev_word" == "--show" ]] ; then
-    COMPREPLY=( $(compgen -W "$(cu.vars | xargs)" -- "$cur_word") )
+    COMPREPLY=( $(compgen -W "$(cu.vars | xargs)" -- | grep -i "$cur_word") )
   elif [[ ! $second_arg == "-"* ]]; then
     COMPREPLY=( $(compgen -f -d -- "$cur_word") )
   fi
