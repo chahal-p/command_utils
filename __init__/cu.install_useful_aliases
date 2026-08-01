@@ -25,8 +25,7 @@ cu.install_alias bin-to-hex=cu.bin-to-hex || exit
 cu.install_alias copy-to-clipboard=cu.copy-to-clipboard || exit
 cu.install_alias confirm='cu.command -c --' || exit
 cu.install_alias hex-to-bin=cu.hex-to-bin || exit
-cu.install_alias py-print=cu.python.print || exit
-cu.install_alias vars-print=cu.vars.print || exit
+
 
 ############ Date ############
 
