@@ -40,7 +40,7 @@ LOCK_DIR="/tmp/cu_workflows_locks_${USER}"
 function acquire_worker_id_lock() {
   local lock_file
   lock_file="${LOCK_DIR}/worker_${WORKER_ID}.lock"
-  (umask 000 && touch "${lock_file}") || { log_error "Failed to create lock file for worker ${WORKER_ID}"; exit 1; }
+  bash -c "umask 000 && touch "${lock_file}"" || { log_error "Failed to create lock file for worker ${WORKER_ID}"; exit 1; }
   exec 201<"${lock_file}"
   cu.lock --fd 201 --timeout 0 2>/dev/null
 }
@@ -56,7 +56,7 @@ function lock_workflow() {
   local lock_file
   name="$1"
   lock_file="${LOCK_DIR}/workflow_${name}.lock"
-  (umask 000 && touch "${lock_file}") || { log_workflow_error "${name}" "Failed to create lock file for workflow"; exit 1; }
+  bash -c "umask 000 && touch "${lock_file}"" || { log_workflow_error "${name}" "Failed to create lock file for workflow"; exit 1; }
   exec 200<"${lock_file}"
   cu.lock --fd 200 --timeout 0 2>/dev/null
 }

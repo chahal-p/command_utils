@@ -1,167 +1,38 @@
 #!/usr/bin/env bash
 
-set -eo pipefail
+function usage() {
+  cat <<EOF
+Usage: $(basename "${0}") <subcommand> [args...]"
+Subcommands:
+  list [<namespace>]
+  get <namespace> <key>
+  set <namespace> <key> [<etag>"]
+  set_overwrite <namespace> <key> [<etag>]"
+  delete <namespace> <key>
+  concat <namespace> [<key_1>,<key_2>,...] [<key_value_format>]
+  chmod <namespace> <key> <mode>
+  chown <namespace> <key> <owner_group>
+
+Details:
+  etag              : sha256 of existing value (for new entry set it as empty string \`sha256sum < <("")\`)
+  concat            : Content for each key/value pair is concatenated with an empty line in between based on key_value_format parameter.
+  key_value_format  : Key and value formated before concat operation
+                      Supported formats:
+                        values: values of keys concatenated
+                        shellvars: KEY1='<value>'
+                        comma_separated: key,value
+  set               : stdin is used as the value
+  set_overwrite     : stdin is used as the value
+  owner_group       : value format is <user>[:<group>]
+EOF
+}
+
+[[ "$1" == "--help" || "$1" == "-h" ]] && { usage; exit 0; }
+
+# In set or set_overwrite subcommand, stdin is used as the value
+# etag is sha256 of existing value
 
 source cu.errors_lib.bash
-
-subcommand="$1"
-namespace="$2"
-key="$3"
-mode="$4"
-owner_group="$5"
-etag="$6"
-
-HIDDEN_NAMESPACE_PREFIX="__cd97e6__"
-
-USER="$(whoami)"
-
-function die() {
-  [ "$FLAGS_CU_PERSISTENT_KV_DEBUG_MODE" == "true" ] || cu.errors.die $1
-  cu.errors.die "$@"
-}
-
-function usage() {
-  [ "$FLAGS_CU_PERSISTENT_KV_DEBUG_MODE" == "true" ] || return 0
-  echo "Usage: $(basename "${0}") <subcommand> <namespace> <key> [mode] [owner_group] [etag]"
-  echo "Subcommands:"
-  echo "  list"
-  echo "  get"
-  echo "  set"
-  echo "  set_overwrite"
-  echo "  delete"
-  echo "  chmod"
-  echo "  chown"
-  echo ""
-  echo "In set or set_overwrite subcommand, stdin is used as the value"
-}
-
-source _cu.persistent_kv.configs || die $CU_ERROR "Failed to load persistent_kv configs"
-LOCK_DIR="/tmp/cu_persistent_kv_locks"
-
-[[ -d "${STORAGE_DIR}" ]] || die "Storage directory ${STORAGE_DIR} does not exist"
-[[ -d "${LOCK_DIR}" ]] || mkdir -m 777 -p "${LOCK_DIR}" || die "Failed to create lock directory ${LOCK_DIR}"
-
-function validate_namespace() {
-  [[ -n "${namespace}" ]] || die $CU_ERROR_USAGE "Namespace is required"
-  [[ "${#namespace}" -le 64 ]] || die $CU_ERROR_USAGE "Invalid namespace: namespace should be at most 64 characters long"
-  [[ "${namespace}" =~ ^[a-zA-Z0-9_-]+$ ]] || die $CU_ERROR_USAGE "Invalid namespace: namespace should match regex ^[a-zA-Z0-9_-]+$"
-}
-
-function validate_key() {
-  [[ -n "${key}" ]] || die $CU_ERROR_USAGE "Key is required"
-  [[ "${#key}" -le 64 ]] || die $CU_ERROR_USAGE "Invalid key: key should be at most 64 characters long"
-  [[ "${key}" =~ ^[a-zA-Z0-9_-]+$ ]] || die $CU_ERROR_USAGE "Invalid key: key should match regex ^[a-zA-Z0-9_-]+$"
-}
-
-function acquire_lock() {
-  key_lock_path="${LOCK_DIR}/${namespace}.${key}.lock"
-  (umask 000 && touch "${key_lock_path}") || die $CU_ERROR "Failed to create lock file"
-
-  lock_cmd="flock"
-  cu.is_macos && lock_cmd="lockf"
-
-  exec 200<"${key_lock_path}"
-  $lock_cmd 200
-}
-
-########## BEGIN list subcommand ##########
-
-if [[ "${subcommand}" == "list" ]]; then
-  [ -r "${STORAGE_DIR}" ] || die $CU_ERROR "Permission denied: $USER does not have permission to read storage directory '${STORAGE_DIR}'"
-  if [[ -n "${namespace}" ]]; then
-    validate_namespace
-    items=()
-    for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep -v "\/$" | grep "^${namespace}\."); do
-      [ -r "${STORAGE_DIR%/}/${x}" ] || continue
-      items+=("${x#*.}")
-    done
-    [[ ${#items[@]} -eq 0 ]] && die $CU_ERROR_NOT_FOUND "Namespace ${namespace} not found"
-    printf '%s\n' "${items[@]}" | sort -u
-  else
-    items=()
-    exclude_internal_ns=(-e ^${HIDDEN_NAMESPACE_PREFIX}.*)
-    [[ "$FLAGS_CU_PERSISTENT_KV_SHOW_INTERNAL_NAMESPACES" == "true" ]] && exclude_internal_ns=("::")
-    for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep -v "\/$" | grep -v "${exclude_internal_ns[@]}"); do
-      [ -r "${STORAGE_DIR%/}/${x}" ] || continue
-      items+=("${x%.*}")
-    done
-    [[ ${#items[@]} -eq 0 ]] && exit
-    printf '%s\n' "${items[@]}" | sort -u
-  fi
-  exit
-fi
-########## END list subcommand ##########
-
-key_file="${STORAGE_DIR}/${namespace}.${key}"
-
-########## BEGIN get subcommand ##########
-if [[ "${subcommand}" == "get" ]]; then
-  validate_namespace
-  validate_key
-  acquire_lock
-  [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
-  [ -r "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable"
-  cat "${key_file}" || die $CU_ERROR "Failed to get value for key ${key} in namespace ${namespace}"
-  exit
-fi
-########## END get subcommand ##########
-
-########## BEGIN set subcommand ##########
-if [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
-  validate_namespace
-  validate_key
-  acquire_lock
-  [ -w "${STORAGE_DIR}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: $USER does not have permission to write in storage directory '${STORAGE_DIR}'"
-  if [ -f "${key_file}" ]; then
-    [ "${subcommand}" == "set" ] && die $CU_ERROR_ALREADY_EXISTS "Key ${key} in namespace ${namespace} already exists"
-  else
-    (umask 137 && touch "${key_file}") || die $CU_ERROR "Failed to create key ${key} in namespace ${namespace}"
-  fi
-  [ -w "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not writable"
-  if [[ -n "${etag}" ]]; then
-    [ -r "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable, etag can not be matched."
-    cat "${key_file}" 2>/dev/null | cu.sha256sum | grep -q "^${etag}$" || die $CU_ERROR_ETAG_MISMATCH "Etag mismatch for key ${key} in namespace ${namespace}"
-  fi
-  cat - > "${key_file}" || die $CU_ERROR "Failed to set value for key ${key} in namespace ${namespace}"
-  exit
-fi
-########## END set subcommand ##########
-
-########## BEGIN delete subcommand ##########
-if [[ "${subcommand}" == "delete" ]]; then
-  validate_namespace
-  validate_key
-  acquire_lock
-  [ -w "${STORAGE_DIR}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: $USER does not have permission to delete in storage directory '${STORAGE_DIR}'"
-  [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
-  [ -w "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not deletable"
-  rm "${key_file}" > /dev/null 2>&1 || die $CU_ERROR "Failed to delete key ${key} in namespace ${namespace}"
-  exit
-fi
-########## END delete subcommand ##########
-
-########## BEGIN chmod subcommand ##########
-if [[ "${subcommand}" == "chmod" ]]; then
-  validate_namespace
-  validate_key
-  acquire_lock
-  [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
-  chmod "${mode}" "${key_file}" || die $CU_ERROR "Failed to set mode for key ${key} in namespace ${namespace}"
-  exit
-fi
-########## END chmod subcommand ##########
-
-########## BEGIN chown subcommand ##########
-if [[ "${subcommand}" == "chown" ]]; then
-  validate_namespace
-  validate_key
-  acquire_lock
-  [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
-  chown "${owner_group}" "${key_file}" || die $CU_ERROR "Failed to set owner/group for key ${key} in namespace ${namespace}"
-  exit
-fi
-########## END chown subcommand ##########
-
-usage
-[[ -z "${subcommand}" ]] && die $CU_ERROR_USAGE "No subcommand specified"
-die $CU_ERROR_USAGE "Unknown subcommand: ${subcommand}"
+source _cu.persistent_kv.configs || cu.errors.die $CU_ERROR "Failed to load persistent_kv configs: _cu.persistent_kv.configs"
+[ -n "${BACKEND_CMD}" ] || cu.errors.die $CU_ERROR "Variable \$BACKEND_CMD is not defined in configs. Please use cu.persistent_kv.configure command to reconfigure."
+exec -a _cu.persistent_kv "${BACKEND_CMD[@]}" "$@"

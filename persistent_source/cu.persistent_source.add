@@ -4,7 +4,7 @@ source _cu.persistent_source.configs || exit 1
 
 parsed=$(pflags parse --name "$(basename "$0")" ---- \
   -s f -l file -t string -h "File to add (Use - for stdin)" -- \
-  -s n -l name -t string -h "Name of the source" --regex "^[a-zA-Z0-9_-]+$" -- \
+  -s n -l name -t string -h "Name of the source" --regex "^[a-zA-Z0-9_.-]+$" -- \
   -s i -l index -t number -h "Index of the source" --default "" -- \
   -l sh -t string -h "Shell type (bash or zsh)" --allowed bash --allowed zsh ---- "${@}") || exit
 

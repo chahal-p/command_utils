@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+source cu.errors_lib.bash
+
+STORAGE_DIR="$1"
+subcommand="$2"
+shift 2
+
+USER="$(whoami)"
+
+function die() {
+  [ "$FLAGS_CU_PERSISTENT_KV_DEBUG_MODE" == "true" ] || cu.errors.die $1
+  cu.errors.die "$@"
+}
+
+LOCK_DIR="/tmp/cu_persistent_kv_locks"
+
+[[ -d "${STORAGE_DIR}" ]] || die "Storage directory ${STORAGE_DIR} does not exist"
+[[ -d "${LOCK_DIR}" ]] || mkdir -m 777 -p "${LOCK_DIR}" || die "Failed to create lock directory ${LOCK_DIR}"
+
+function validate_namespace() {
+  local namespace="$1"
+  [[ -n "${namespace}" ]] || die $CU_ERROR_USAGE "Namespace is required"
+  [[ "${#namespace}" -le 64 ]] || die $CU_ERROR_USAGE "Invalid namespace: namespace should be at most 64 characters long"
+  [[ "${namespace}" =~ ^[a-zA-Z0-9_-]+$ ]] || die $CU_ERROR_USAGE "Invalid namespace: namespace should match regex ^[a-zA-Z0-9_-]+$"
+}
+
+function validate_key() {
+  local key="$1"
+  [[ -n "${key}" ]] || die $CU_ERROR_USAGE "Key is required"
+  [[ "${#key}" -ge 1 && "${#key}" -le 64 ]] || die $CU_ERROR_USAGE "Invalid key: key size should be at least 1 and at most 64 characters long"
+  [[ "${key}" =~ ^[a-zA-Z0-9_.-]+$ ]] || die $CU_ERROR_USAGE "Invalid key: key should match regex ^[a-zA-Z0-9_.-]+$"
+}
+
+function acquire_lock() {
+  local namespace="$1"
+  local key="$2"
+  local key_lock_path="${LOCK_DIR}/${namespace}.${key}.lock"
+  (umask 000 && touch "${key_lock_path}") || die $CU_ERROR "Failed to create lock file"
+
+  lock_cmd="flock"
+  cu.is_macos && lock_cmd="lockf"
+
+  exec 200<"${key_lock_path}"
+  $lock_cmd 200
+}
+
+function list() {
+  local namespace="${1}"
+  local subcommand="${2}"
+  local items=()
+  local x
+
+  [ -r "${STORAGE_DIR}" ] || die $CU_ERROR "Permission denied: $USER does not have permission to read storage directory '${STORAGE_DIR}'"
+  if [[ -n "${namespace}" ]]; then
+    validate_namespace "${namespace}"
+    for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep -v "\/$" | grep "^${namespace}\."); do
+      [ -r "${STORAGE_DIR%/}/${x}" ] || continue
+      items+=("${x#*.}")
+    done
+    [[ ${#items[@]} -eq 0 ]] && die $CU_ERROR_NOT_FOUND "Namespace ${namespace} not found"
+    printf '%s\n' "${items[@]}" | LC_ALL=C sort -u
+  else
+    for x in $(ls -1F --color=never "${STORAGE_DIR}" | grep -v "\/$"); do
+      [ -r "${STORAGE_DIR%/}/${x}" ] || continue
+      items+=("${x%%.*}")
+    done
+    [[ ${#items[@]} -eq 0 ]] && exit
+    printf '%s\n' "${items[@]}" | LC_ALL=C sort -u
+  fi
+}
+
+function get() {
+  local namespace key no_lock key_file
+  namespace="${1}"
+  key="${2}"
+  no_lock="${3}"
+  key_file="${STORAGE_DIR}/${namespace}.${key}"
+  validate_namespace "${namespace}"
+  validate_key "${key}"
+  [ "$no_lock" == "true" ] || acquire_lock "${namespace}" "${key}"
+  [ -r "${key_file}" ] || {
+    [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
+    die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable"
+  }
+  cat "${key_file}" || die $CU_ERROR "Failed to get value for key ${key} in namespace ${namespace}"
+}
+
+function set() {
+  local namespace="${1}"
+  local key="${2}"
+  local etag="${3}"
+  local force="${4}"
+  local key_file="${STORAGE_DIR}/${namespace}.${key}"
+  validate_namespace "${namespace}"
+  validate_key "${key}"
+  acquire_lock "${namespace}" "${key}"
+  [ -w "${STORAGE_DIR}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: $USER does not have permission to write in storage directory '${STORAGE_DIR}'"
+  if [ -f "${key_file}" ]; then
+    [ "${force}" != "true" ] && die $CU_ERROR_ALREADY_EXISTS "Key ${key} in namespace ${namespace} already exists"
+  else
+    (umask 137 && touch "${key_file}") || die $CU_ERROR "Failed to create key ${key} in namespace ${namespace}"
+  fi
+  [ -w "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not writable"
+  if [[ -n "${etag}" ]]; then
+    [ -r "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not readable, etag can not be matched."
+    cat "${key_file}" 2>/dev/null | cu.sha256sum | grep -q "^${etag}$" || die $CU_ERROR_ETAG_MISMATCH "Etag mismatch for key ${key} in namespace ${namespace}"
+  fi
+  cat - > "${key_file}" || die $CU_ERROR "Failed to set value for key ${key} in namespace ${namespace}"
+}
+
+function delete() {
+  local namespace="${1}"
+  local key="${2}"
+  local key_file="${STORAGE_DIR}/${namespace}.${key}"
+  validate_namespace "${namespace}"
+  validate_key "${key}"
+  acquire_lock "${namespace}" "${key}"
+  [ -w "${STORAGE_DIR}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: $USER does not have permission to delete in storage directory '${STORAGE_DIR}'"
+  [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
+  [ -w "${key_file}" ] || die $CU_ERROR_PERMISSION_DENIED "Permission denied: Key ${key} in namespace ${namespace} is not deletable"
+  rm "${key_file}" > /dev/null 2>&1 || die $CU_ERROR "Failed to delete key ${key} in namespace ${namespace}"
+}
+
+function chmod() {
+  local namespace="${1}"
+  local key="${2}"
+  local mode="${3}"
+  local key_file="${STORAGE_DIR}/${namespace}.${key}"
+  validate_namespace "${namespace}"
+  validate_key "${key}"
+  acquire_lock "${namespace}" "${key}"
+  [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
+  chmod "${mode}" "${key_file}" || die $CU_ERROR "Failed to set mode for key ${key} in namespace ${namespace}"
+}
+
+function chown() {
+  local namespace="${1}"
+  local key="${2}"
+  local owner_group="${3}"
+  local key_file="${STORAGE_DIR}/${namespace}.${key}"
+  validate_namespace "${namespace}"
+  validate_key "${key}"
+  acquire_lock "${namespace}" "${key}"
+  [ -f "${key_file}" ] || die $CU_ERROR_NOT_FOUND "Key ${key} in namespace ${namespace} not found"
+  chown "${owner_group}" "${key_file}" || die $CU_ERROR "Failed to set owner/group for key ${key} in namespace ${namespace}"
+}
+
+function concat() {
+  # No locking is performed while reading files
+  local namespace="${1}"
+  local comma_separated_key="${2}"
+  local format="${3}"
+  local keys=()
+  local key
+  validate_namespace "${namespace}"
+  if [[ -z "${comma_separated_key}" ]]; then
+    keys=( $(list "${namespace}" "list") ) || exit
+  else
+    IFS=',' read -r -a keys <<< "${comma_separated_key}"
+  fi
+  if [[ "$format" == "values" ]]; then
+    for key in "${keys[@]}"; do
+      get "${namespace}" "${key}" "true" || exit
+      printf "\n"
+    done
+  elif [[ "$format" == "shellvars" ]]; then
+    for key in "${keys[@]}"; do
+      printf "%s=%s;\n" "${key}" "$(cu.strings.quoted "$(get "${namespace}" "${key}" "true")")" || exit
+    done
+  elif [[ "$format" == "comma_separated" ]]; then
+    for key in "${keys[@]}"; do
+      printf "%s,%s\n" "${key}" "$(cu.strings.quoted "$(get "${namespace}" "${key}" "true")")" || exit
+    done
+  else
+    die $CU_ERROR_USAGE "Unknown format: ${format}"
+  fi
+}
+
+if [[ "${subcommand}" == "list" ]]; then
+  list "$1" "${subcommand}"
+elif [[ "${subcommand}" == "get" ]]; then
+  get "$1" "$2"
+elif [[ "${subcommand}" == "set" || "${subcommand}" == "set_overwrite" ]]; then
+  force="false"
+  [[ "${subcommand}" == "set_overwrite" ]] && force="true"
+  set "$1" "$2" "$3" "${force}"
+elif [[ "${subcommand}" == "delete" ]]; then
+  delete "$1" "$2"
+elif [[ "${subcommand}" == "chmod" ]]; then
+  chmod "$1" "$2" "$3"
+elif [[ "${subcommand}" == "chown" ]]; then
+  chown "$1" "$2" "$3"
+elif [[ "${subcommand}" == "concat" ]]; then
+  concat "$1" "$2" "$3"
+else
+  [[ -z "${subcommand}" ]] && die $CU_ERROR_USAGE "No subcommand specified"
+  die $CU_ERROR_USAGE "Unknown subcommand: ${subcommand}"
+fi

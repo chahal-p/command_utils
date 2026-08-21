@@ -1,11 +1,51 @@
 #!/usr/bin/env bash
 
-kv="$1"
+parsed=$(pflags parse --name "$(basename "$0")" --description "Installs an alias to be executed as a command.
+Example: cu.install_alias ll='ls -l'
+Now ll command will execute as: ls -l" \
+  ---- -l exec -t bool --help "Command to be executed with exec.\n Example:\n  Alias defined as: cu.install_alias lsa='ls -a'\n  Command will be executed as by lsa: exec ls -a" \
+    ---- "$@") || exit $?
+
+eval set -- "$parsed"
+
+positional_args=()
+exec_enabled="false"
+
+while [[ $# -gt 0 ]]; do
+  [[ "$1" == "--" ]] && { shift; break; }
+  case $1 in
+    --help)
+      printf '%s' "$2"
+      exit 0  
+      ;;
+    --exec)
+      exec_enabled="$2"
+      shift 2
+      ;;
+  esac
+done
+
+while [[ $# -gt 0 ]]; do
+  positional_args+=("$1")
+  shift
+done
+
+if [[ ${#positional_args[@]} -ne 1 ]]; then 
+  echo "Error: Expected 1 positional argument, got ${#positional_args[@]}"
+  exit 1
+fi
+
+kv="${positional_args[0]}"
 
 value="${kv#*=}"
 key="${kv%"=$value"}"
 
+exec_prefix=""
+if [[ "$exec_enabled" == "true" ]]; then
+  exec_prefix="exec -a $key "
+fi
+
 cu.install --name "$key" --installation_path "$HOME/.local/bin" --content - <<EOF
 #!/usr/bin/env bash
-$value "\$@"
+${exec_prefix}${value} "\$@"
 EOF

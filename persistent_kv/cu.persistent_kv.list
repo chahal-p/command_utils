@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+HIDDEN_NAMESPACE_PREFIX="__cd97e6__"
+
 function usage() {
   cat << EOF
 Usage: $(basename "$0") [-n ] [-h]
@@ -46,4 +48,8 @@ done
 
 args=()
 [ -n "${FLAGS_namespace}" ] && args+=("${FLAGS_namespace}")
-exec _cu.persistent_kv list "${args[@]}"
+if [[ "$FLAGS_CU_PERSISTENT_KV_SHOW_INTERNAL_NAMESPACES" == "true" ]]; then
+  _cu.persistent_kv list "${args[@]}"
+else
+  _cu.persistent_kv list "${args[@]}" | grep -v -e "^${HIDDEN_NAMESPACE_PREFIX}.*"
+fi

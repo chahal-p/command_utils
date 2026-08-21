@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 
+source cu.errors_lib.bash || { echo "Not able to source cu.errors_lib.bash" >&2; exit 1; }
+
+usage() {
+  cat<<EOF
+Usage: $(basename "$0") [-h | --help] [<value>]
+
+If no value provided it reads from stdin
+EOF
+exit 0
+}
+
+[[ "$1" == "-h" || "$1" == "--help" ]] && usage
+[ $# -le 1 ] || cu.errors.die_usage "Either a value or -h/--help can be passed as args"
+
 copy_cmd='xclip -selection clipboard'
 cu.is_macos && copy_cmd='pbcopy'
 
