@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-/usr/sbin/ioreg -n Root -d 1 | grep -q CGSSessionScreenIsLocked
