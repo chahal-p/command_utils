@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-exec rsync -arh --info=progress2 "$@"
