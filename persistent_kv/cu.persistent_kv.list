@@ -51,7 +51,6 @@ args=()
 if [[ "$FLAGS_CU_PERSISTENT_KV_SHOW_INTERNAL_NAMESPACES" == "true" ]]; then
   _cu.persistent_kv list "${args[@]}"
 else
-  code=0
-  (_cu.persistent_kv list "${args[@]}" || code=$?) | grep -v -e "^${HIDDEN_NAMESPACE_PREFIX}.*"
-  exit $code
+  _cu.persistent_kv list "${args[@]}" | grep -v -e "^${HIDDEN_NAMESPACE_PREFIX}.*"
+  exit ${PIPESTATUS[0]}
 fi
