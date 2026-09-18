@@ -65,4 +65,4 @@ cu.install_alias openssl-signature-extract=cu.openssl.signature-extract || exit
 complete_commands+=('complete -F _complete_cu.openssl.tbs-extract openssl-tbs-extract')
 cu.install_alias openssl-tbs-extract=cu.openssl.tbs-extract || exit
 
-printf '%s\n' "${complete_commands[@]}" | cu.persistent_source.add --sh bash -n _complete_useful_aliases -f -
+printf '%s\n' "${complete_commands[@]}" | cu.persistent_source.add --sh bash -n _complete_useful_aliases --index 100 -f -
