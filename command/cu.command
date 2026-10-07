@@ -18,7 +18,7 @@ done
 parsed_args=$(pflags parse --name "$(basename "$0")" --usage "$(basename "$0") [options...] -- <command> [args...]" ---- \
   -s c -l confirm -t bool -h "Show command and ask for confirmation before running" -- \
   -s v -l verbose -t bool -h "Show command and run" -- \
-  -s l -l line -t bool -h "Execute the command for each line of input from stdin.\nUse \$1 to refer the line of input in the command.\n Example: echo \"\\\\\$1\".\n Default: false" -- \
+  -s l -l line -t bool -h "Execute the command for each line of input from stdin.\nUse {} to refer the line of input in the command.\n Example: echo \"{}\".\n Default: false" -- \
   -s t -l timeout -t number --default '' -h "Timeout for the command.\n Once the timeout is reached, the specified signal will be sent to the command" -- \
   -s s -l signal -t string --default 'SIGKILL' -h "Signal to send to the command when the timeout is reached. Default is SIGKILL" -- \
   -s k -l kill_after -t number --default '' -h "Time to wait after sending the signal before killing the command.\n If not specified, wait indefinitely for the signal to be processed" -- \
