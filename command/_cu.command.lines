@@ -31,5 +31,5 @@ done
 while IFS= read -r line || [[ -n "$line" ]]; do
   cat <<< "
 ${cmd} ${args[@]}
-" | bash -s -- "$line"
+" | bash -s -- "$line" | awk '{print}'
 done
