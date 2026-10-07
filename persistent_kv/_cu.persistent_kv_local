@@ -172,7 +172,7 @@ function concat() {
     done
   elif [[ "$format" == "comma_separated" ]]; then
     for key in "${keys[@]}"; do
-      printf "%s,%s\n" "${key}" "$(cu.strings.quoted "$(get "${namespace}" "${key}" "true")")" || exit
+      printf "%s,%s\n" "${key}" "$(get "${namespace}" "${key}" "true")" || exit
     done
   else
     die $CU_ERROR_USAGE "Unknown format: ${format}"
