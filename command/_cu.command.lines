@@ -19,6 +19,8 @@ function usage() {
 [[ "$1" == "-h" || "$1" == "--help" ]] && { usage; exit 0; }
 [[ $# -eq 0 ]] && { usage >&2; cu.errors.die_usage; }
 
+cmd="${1}"
+shift
 args=()
 
 while [[ $# -gt 0 ]]; do
@@ -27,9 +29,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 while IFS= read -r line || [[ -n "$line" ]]; do
-  line_dq="$(cu.strings.quoted "$line")"
   cat <<< "
-set -- $line_dq
-${args[@]}
-" | bash
+${cmd} ${args[@]}
+" | bash -s -- "$line"
 done
