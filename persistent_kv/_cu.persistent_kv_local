@@ -11,7 +11,7 @@ shift 2
 USER="$(whoami)"
 
 function die() {
-  [ "$FLAGS_CU_PERSISTENT_KV_DEBUG_MODE" == "true" ] || cu.errors.die $1
+  [ "$FLAG_CU_PERSISTENT_KV_DEBUG_MODE" == "true" ] || cu.errors.die $1
   cu.errors.die "$@"
 }
 
