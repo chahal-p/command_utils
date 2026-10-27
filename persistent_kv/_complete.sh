@@ -35,19 +35,39 @@ _complete_cu.persistent_kv.list() {
 
 _complete_cu.persistent_kv.get() {
   _complete_cu.persistent_kv_base "-n --namespace -k --key -h --help" "$@"
-  
 }
 
 _complete_cu.persistent_kv.set() {
   _complete_cu.persistent_kv_base "-n --namespace -k --key -v --value -f --force --etag -h --help" "$@"
-  
 }
 
 _complete_cu.persistent_kv.delete() {
   _complete_cu.persistent_kv_base "-n --namespace -k --key --delete_namespace -h --help" "$@"
 }
 
+_complete_cu.persistent_kv.chmod() {
+  _complete_cu.persistent_kv_base "-n --namespace -k --key -m --mode -h --help" "$@"
+}
+
+_complete_cu.persistent_kv.chown() {
+  _complete_cu.persistent_kv_base "-n --namespace -k --key -o --owner -g --group -h --help" "$@"
+}
+
+_complete_cu.persistent_kv.configure() {
+  local OPTS="-e --editor -p --print_path -h --help"
+  local cur_word="${COMP_WORDS[COMP_CWORD]}"
+  local prev_word="${COMP_WORDS[COMP_CWORD-1]}"
+  if [[ "$prev_word" == "-e" || "$prev_word" == "--editor" ]]; then
+    COMPREPLY=( $(compgen -c -- "$cur_word") )
+  else
+    COMPREPLY=( $(compgen -W "${OPTS}" -- "$cur_word") )
+  fi
+}
+
 complete -F _complete_cu.persistent_kv.list cu.persistent_kv.list
 complete -F _complete_cu.persistent_kv.get cu.persistent_kv.get
 complete -F _complete_cu.persistent_kv.set cu.persistent_kv.set
 complete -F _complete_cu.persistent_kv.delete cu.persistent_kv.delete
+complete -F _complete_cu.persistent_kv.chmod cu.persistent_kv.chmod
+complete -F _complete_cu.persistent_kv.chown cu.persistent_kv.chown
+complete -F _complete_cu.persistent_kv.configure cu.persistent_kv.configure
