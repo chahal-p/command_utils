@@ -1,2 +1,7 @@
 #!/usr/bin/env bash
-sha256sum | head -c 64
+
+if [ #$ -eq 0 ]; then
+  sha256sum | head -c 64
+else
+  printf '%s' "$1" | sha256sum | head -c 64
+fi
