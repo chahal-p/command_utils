@@ -62,7 +62,7 @@ function get() {
   validate_namespace "${namespace}"
   validate_key "${key}"
   if [ "$no_lock" == "true" ]; then
-    exec cu.file get_without_lock "$key_file"
+    cu.file get_without_lock "$key_file"
   else
     exec cu.file get "$key_file"
   fi
