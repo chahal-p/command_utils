@@ -30,7 +30,7 @@ source cu.errors_lib.bash || exit
 
 
 FILE_PATH="$1"
-SUBCOMMAND="$2"
+OPERATION="$2"
 
 shift 2 || true
 
@@ -96,19 +96,19 @@ function chown() {
   chown "${owner_group}" "${FILE_PATH}" || cu.errors.die $CU_ERROR "Failed to set owner/group on file $FILE_PATH"
 }
 
-if [[ "${SUBCOMMAND}" == "get" ]]; then
+if [[ "${OPERATION}" == "get" ]]; then
   get
-elif [[ "${SUBCOMMAND}" == "set" || "${SUBCOMMAND}" == "set_overwrite" ]]; then
+elif [[ "${OPERATION}" == "set" || "${OPERATION}" == "set_overwrite" ]]; then
   force="false"
-  [[ "${SUBCOMMAND}" == "set_overwrite" ]] && force="true"
+  [[ "${OPERATION}" == "set_overwrite" ]] && force="true"
   set "${force}" "$1"
-elif [[ "${SUBCOMMAND}" == "delete" ]]; then
+elif [[ "${OPERATION}" == "delete" ]]; then
   delete
-elif [[ "${SUBCOMMAND}" == "chmod" ]]; then
+elif [[ "${OPERATION}" == "chmod" ]]; then
   chmod "$1"
-elif [[ "${SUBCOMMAND}" == "chown" ]]; then
+elif [[ "${OPERATION}" == "chown" ]]; then
   chown "$1"
 else
-  [[ -z "${SUBCOMMAND}" ]] && cu.errors.die $CU_ERROR_USAGE "No SUBCOMMAND specified"
-  cu.errors.die $CU_ERROR_USAGE "Unknown SUBCOMMAND: ${SUBCOMMAND}"
+  [[ -z "${OPERATION}" ]] && cu.errors.die $CU_ERROR_USAGE "No OPERATION specified"
+  cu.errors.die $CU_ERROR_USAGE "Unknown OPERATION: ${OPERATION}"
 fi
