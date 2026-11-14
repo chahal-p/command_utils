@@ -8,6 +8,7 @@ Operations are executed with exclusive lock on file path.
 
 Operations:
   get
+  get_without_lock
   set [<etag>]
   set_overwrite [<etag>]
   delete
@@ -39,19 +40,21 @@ shift 2 || true
 [[ "$FILE_PATH" == /* ]] || cu.errors.die "File path should be absolute"
 
 ##### Lock file #####
-LOCK_DIR="/tmp/cu_files_locks"
+if [[ "$OPERATION" != "get_without_lock" ]]; then
+  LOCK_DIR="/tmp/cu_files_locks"
 
-[[ -d "${LOCK_DIR}" ]] || mkdir -m 777 -p "${LOCK_DIR}" || cu.errors.die "Failed to create lock directory ${LOCK_DIR}"
+  [[ -d "${LOCK_DIR}" ]] || mkdir -m 777 -p "${LOCK_DIR}" || cu.errors.die "Failed to create lock directory ${LOCK_DIR}"
 
-FILE_LOCK_PATH="$LOCK_DIR/$(cu.sha256sum "$FILE_PATH").lock" || cu.errors.die "Failed to create lockfile for $FILE_PATH"
+  FILE_LOCK_PATH="$LOCK_DIR/$(cu.sha256sum "$FILE_PATH").lock" || cu.errors.die "Failed to create lockfile for $FILE_PATH"
 
-(umask 000 && touch "${FILE_LOCK_PATH}") || cu.errors.die $CU_ERROR "Failed to create lock file"
+  (umask 000 && touch "${FILE_LOCK_PATH}") || cu.errors.die $CU_ERROR "Failed to create lock file"
 
-lock_cmd="flock"
-cu.is_macos && lock_cmd="lockf"
+  lock_cmd="flock"
+  cu.is_macos && lock_cmd="lockf"
 
-exec 200<"${FILE_LOCK_PATH}"
-$lock_cmd 200
+  exec 200<"${FILE_LOCK_PATH}"
+  $lock_cmd 200
+fi
 #####################
 
 function get() {
