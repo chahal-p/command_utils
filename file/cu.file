@@ -99,7 +99,7 @@ function chown() {
   chown "${owner_group}" "${FILE_PATH}" || cu.errors.die $CU_ERROR "Failed to set owner/group on file $FILE_PATH"
 }
 
-if [[ "${OPERATION}" == "get" ]]; then
+if [[ "${OPERATION}" == "get" || "${OPERATION}" == "get_without_lock" ]]; then
   get
 elif [[ "${OPERATION}" == "set" || "${OPERATION}" == "set_overwrite" ]]; then
   force="false"
