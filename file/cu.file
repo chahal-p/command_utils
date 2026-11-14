@@ -1,8 +1,33 @@
 #!/usr/bin/env bash
 
+function usage() {
+  cat <<EOF
+Usage: $(basename "${0}") <absolute_file_path> <operation> [args...]
+
+Operations are executed with exclusive lock on file path.
+
+Operations:
+  get
+  set [<etag>]
+  set_overwrite [<etag>]
+  delete
+  chmod <mode>
+  chown <owner_group>
+
+Details:
+  etag              : sha256 of existing value (for new entry set it as empty string hash: \`sha256sum < <("")\`)
+  set               : stdin is used as the value
+  set_overwrite     : stdin is used as the value
+  owner_group       : value format is <user>[:<group>]
+EOF
+}
+
+[[ "$1" == "--help" || "$1" == "-h" ]] && { usage; exit 0; }
+
 set -eo pipefail
 
 source cu.errors_lib.bash || exit
+
 
 FILE_PATH="$1"
 SUBCOMMAND="$2"
@@ -38,8 +63,8 @@ function get() {
 }
 
 function set() {
-  local overwrite="${1}"
-  local etag="${2}"
+  overwrite="${1}"
+  etag="${2}"
   if [ -f "${FILE_PATH}" ]; then
     [ "${overwrite}" != "true" ] && cu.errors.die $CU_ERROR_ALREADY_EXISTS "Already exist: $FILE_PATH already exists"
   else
@@ -60,11 +85,13 @@ function delete() {
 }
 
 function chmod() {
+  mode="$1"
   [ -f "${FILE_PATH}" ] || cu.errors.die $CU_ERROR_NOT_FOUND "$FILE_PATH does not found"
   chmod "${mode}" "${FILE_PATH}" || cu.errors.die $CU_ERROR "Failed to set mode on file $FILE_PATH"
 }
 
 function chown() {
+  owner_group="${1}"
   [ -f "${FILE_PATH}" ] || cu.errors.die $CU_ERROR_NOT_FOUND "$FILE_PATH does not found"
   chown "${owner_group}" "${FILE_PATH}" || cu.errors.die $CU_ERROR "Failed to set owner/group on file $FILE_PATH"
 }
@@ -78,9 +105,9 @@ elif [[ "${SUBCOMMAND}" == "set" || "${SUBCOMMAND}" == "set_overwrite" ]]; then
 elif [[ "${SUBCOMMAND}" == "delete" ]]; then
   delete
 elif [[ "${SUBCOMMAND}" == "chmod" ]]; then
-  chmod
+  chmod "$1"
 elif [[ "${SUBCOMMAND}" == "chown" ]]; then
-  chown
+  chown "$1"
 else
   [[ -z "${SUBCOMMAND}" ]] && cu.errors.die $CU_ERROR_USAGE "No SUBCOMMAND specified"
   cu.errors.die $CU_ERROR_USAGE "Unknown SUBCOMMAND: ${SUBCOMMAND}"
