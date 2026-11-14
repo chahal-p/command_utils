@@ -2,7 +2,7 @@
 
 function usage() {
   cat <<EOF
-Usage: $(basename "${0}") <absolute_file_path> <operation> [args...]
+Usage: $(basename "${0}") <operation> <absolute_file_path> [args...]
 
 Operations are executed with exclusive lock on file path.
 
@@ -30,8 +30,8 @@ set -eo pipefail
 source cu.errors_lib.bash || exit
 
 
-FILE_PATH="$1"
-OPERATION="$2"
+OPERATION="$1"
+FILE_PATH="$2"
 
 shift 2 || true
 
