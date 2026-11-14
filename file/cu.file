@@ -87,13 +87,13 @@ function delete() {
   rm "${FILE_PATH}" > /dev/null 2>&1 || cu.errors.die $CU_ERROR "Failed to delete file ${FILE_PATH}"
 }
 
-function chmod() {
+function chmod_func() {
   mode="$1"
   [ -f "${FILE_PATH}" ] || cu.errors.die $CU_ERROR_NOT_FOUND "$FILE_PATH does not found"
   chmod "${mode}" "${FILE_PATH}" || cu.errors.die $CU_ERROR "Failed to set mode on file $FILE_PATH"
 }
 
-function chown() {
+function chown_func() {
   owner_group="${1}"
   [ -f "${FILE_PATH}" ] || cu.errors.die $CU_ERROR_NOT_FOUND "$FILE_PATH does not found"
   chown "${owner_group}" "${FILE_PATH}" || cu.errors.die $CU_ERROR "Failed to set owner/group on file $FILE_PATH"
@@ -108,9 +108,9 @@ elif [[ "${OPERATION}" == "set" || "${OPERATION}" == "set_overwrite" ]]; then
 elif [[ "${OPERATION}" == "delete" ]]; then
   delete
 elif [[ "${OPERATION}" == "chmod" ]]; then
-  chmod "$1"
+  chmod_func "$1"
 elif [[ "${OPERATION}" == "chown" ]]; then
-  chown "$1"
+  chown_func "$1"
 else
   [[ -z "${OPERATION}" ]] && cu.errors.die $CU_ERROR_USAGE "No OPERATION specified"
   cu.errors.die $CU_ERROR_USAGE "Unknown OPERATION: ${OPERATION}"
