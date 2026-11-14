@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+source cu.errors_lib.bash || exit
+
+
+FILE_PATH="$1"
+SUBCOMMAND="$2"
+
+shift 2 || true
+
+[ -n "$FILE_PATH" ] || cu.errors.die "File path can not empty"
+
+[[ "$FILE_PATH" == /* ]] || cu.errors.die "File path should be absolute"
+
+##### Lock file #####
+LOCK_DIR="/tmp/cu_files_locks"
+
+[[ -d "${LOCK_DIR}" ]] || mkdir -m 777 -p "${LOCK_DIR}" || cu.errors.die "Failed to create lock directory ${LOCK_DIR}"
+
+FILE_LOCK_PATH="$LOCK_DIR/$(cu.sha256sum "$FILE_PATH").lock" || cu.errors.die "Failed to create lockfile for $FILE_PATH"
+
+(umask 000 && touch "${FILE_LOCK_PATH}") || cu.errors.die $CU_ERROR "Failed to create lock file"
+
+lock_cmd="flock"
+cu.is_macos && lock_cmd="lockf"
+
+exec 200<"${FILE_LOCK_PATH}"
+$lock_cmd 200
+#####################
+
+function get() {
+  [ -r "${FILE_PATH}" ] || {
+    [ -f "${FILE_PATH}" ] || cu.errors.die $CU_ERROR_NOT_FOUND "Not found: $FILE_PATH does not exist"
+    cu.errors.die $CU_ERROR_PERMISSION_DENIED "Permission denied: $FILE_PATH is not readable"
+  }
+  cat "${FILE_PATH}" || cu.errors.die $CU_ERROR "Failed to read file $FILE_PATH"
+}
+
+function set() {
+  local overwrite="${1}"
+  local etag="${2}"
+  if [ -f "${FILE_PATH}" ]; then
+    [ "${overwrite}" != "true" ] && cu.errors.die $CU_ERROR_ALREADY_EXISTS "Already exist: $FILE_PATH already exists"
+  else
+    (umask 137 && touch "${FILE_PATH}") || cu.errors.die $CU_ERROR "Failed to create file $FILE_PATH"
+  fi
+  [ -w "${FILE_PATH}" ] || cu.errors.die $CU_ERROR_PERMISSION_DENIED "Permission denied: ${FILE_PATH} is not writable"
+  if [[ -n "${etag}" ]]; then
+    [ -r "${FILE_PATH}" ] || cu.errors.die $CU_ERROR_PERMISSION_DENIED "Permission denied: ${FILE_PATH} is not readable, etag can not be matched."
+    cat "${FILE_PATH}" 2>/dev/null | cu.sha256sum | grep -q "^${etag}$" || cu.errors.die $CU_ERROR_ETAG_MISMATCH "Etag mismatch for $FILE_PATH"
+  fi
+  cat - > "${FILE_PATH}" || cu.errors.die $CU_ERROR "Failed to set value to file $FILE_PATH"
+}
+
+function delete() {
+  [ -f "${FILE_PATH}" ] || cu.errors.die $CU_ERROR_NOT_FOUND "${FILE_PATH} is not found"
+  [ -w "${FILE_PATH}" ] || cu.errors.die $CU_ERROR_PERMISSION_DENIED "Permission denied: ${FILE_PATH} is not deletable"
+  rm "${FILE_PATH}" > /dev/null 2>&1 || cu.errors.die $CU_ERROR "Failed to delete file ${FILE_PATH}"
+}
+
+function chmod() {
+  [ -f "${FILE_PATH}" ] || cu.errors.die $CU_ERROR_NOT_FOUND "$FILE_PATH does not found"
+  chmod "${mode}" "${FILE_PATH}" || cu.errors.die $CU_ERROR "Failed to set mode on file $FILE_PATH"
+}
+
+function chown() {
+  [ -f "${FILE_PATH}" ] || cu.errors.die $CU_ERROR_NOT_FOUND "$FILE_PATH does not found"
+  chown "${owner_group}" "${FILE_PATH}" || cu.errors.die $CU_ERROR "Failed to set owner/group on file $FILE_PATH"
+}
+
+if [[ "${SUBCOMMAND}" == "get" ]]; then
+  get
+elif [[ "${SUBCOMMAND}" == "set" || "${SUBCOMMAND}" == "set_overwrite" ]]; then
+  force="false"
+  [[ "${SUBCOMMAND}" == "set_overwrite" ]] && force="true"
+  set "${force}" "$1"
+elif [[ "${SUBCOMMAND}" == "delete" ]]; then
+  delete
+elif [[ "${SUBCOMMAND}" == "chmod" ]]; then
+  chmod
+elif [[ "${SUBCOMMAND}" == "chown" ]]; then
+  chown
+else
+  [[ -z "${SUBCOMMAND}" ]] && cu.errors.die $CU_ERROR_USAGE "No SUBCOMMAND specified"
+  cu.errors.die $CU_ERROR_USAGE "Unknown SUBCOMMAND: ${SUBCOMMAND}"
+fi
