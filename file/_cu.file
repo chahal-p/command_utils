@@ -4,7 +4,6 @@ set -eo pipefail
 
 source cu.errors_lib.bash || exit
 
-
 FILE_PATH="$1"
 SUBCOMMAND="$2"
 
