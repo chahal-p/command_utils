@@ -66,6 +66,7 @@ install=(
 "cu_install"
 "date"
 "errors"
+"file"
 "install_alias"
 "numbers"
 "openssl"
