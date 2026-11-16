@@ -20,7 +20,7 @@ EOF
 }
 
 first_arg="$1"
-shift || true
+shift || exit 2
 
 case "$first_arg" in
   -h|--help)
@@ -52,7 +52,7 @@ case "$first_arg" in
     exec -a "$(basename "$0") configure" _cu.persistent_kv.configure "$@"
     ;;
   *)
-    [ $# -gt 0 ] && echo "Unrecognized arguments: $arg" >&2
+    echo "Unrecognized arguments: $arg" >&2
     exit 2
     ;;
 esac
