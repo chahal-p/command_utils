@@ -79,10 +79,13 @@ _complete_cu.persistent_kv.configure() {
   fi
 }
 
-complete -F _complete_cu.persistent_kv.list cu.persistent_kv.list
-complete -F _complete_cu.persistent_kv.get cu.persistent_kv.get
-complete -F _complete_cu.persistent_kv.set cu.persistent_kv.set
-complete -F _complete_cu.persistent_kv.delete cu.persistent_kv.delete
-complete -F _complete_cu.persistent_kv.chmod cu.persistent_kv.chmod
-complete -F _complete_cu.persistent_kv.chown cu.persistent_kv.chown
-complete -F _complete_cu.persistent_kv.configure cu.persistent_kv.configure
+_complete_cu.persistent_kv() {
+  local cur_word="${COMP_WORDS[COMP_CWORD]}"
+  if [ $COMP_CWORD -gt 1 ]; then
+    _complete_cu.persistent_kv.${COMP_WORDS[1]}
+  else
+    COMPREPLY=( $(compgen -W "list get set delete etag chmod chown configure -h" -- "$cur_word") )
+  fi
+}
+
+complete -F _complete_cu.persistent_kv cu.persistent_kv
