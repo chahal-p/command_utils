@@ -4,7 +4,7 @@ HIDDEN_NAMESPACE_PREFIX="__cd97e6__"
 
 function usage() {
   cat << EOF
-Usage: $(basename "$0") [-n ] [-h]
+Usage: cu.persistent_kv list [-n ] [-h]
 
 Options:
   -n, --namespace   Namespace
