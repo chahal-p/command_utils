@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
 
 _complete_cu.persistent_kv_base() {
-  local OPTS="$1"
+  local OPTS=( $1 )
+  local result=()
+  local x
+  local IFS=$'\n'
   shift
-  local cur_word="${COMP_WORDS[COMP_CWORD]}"
+  local cur_word="$(printf '%q' "${COMP_WORDS[COMP_CWORD]}")"
   local prev_word="${COMP_WORDS[COMP_CWORD-1]}"
   if [[ "$prev_word" == "-n" || "$prev_word" == "--namespace" ]]; then
-    COMPREPLY=( $(compgen -W "$(cu.persistent_kv.list)" -- "$cur_word") )
+    for x in "$(cu.persistent_kv.list)"; do
+      result+=( "$x" )
+    done
+    COMPREPLY=( $(compgen -W "${result[*]}" -- "$cur_word") )
   elif [[ "$prev_word" == "-k" || "$prev_word" == "--key" ]]; then
     local i
     local namespace
@@ -23,11 +29,19 @@ _complete_cu.persistent_kv_base() {
         record_namespace=true
       fi
     done
-    [ -n "$namespace" ] && COMPREPLY=( $(compgen -W "$(cu.persistent_kv.list -n "$namespace")" -- "$cur_word") )
+    if [ -n "$namespace" ]; then
+      while IFS= read -r line; do
+        line="$(printf '%q' "$line")"
+        line="$(printf '%q' "$line")"
+        result+=( "$line" )
+      done < <(cu.persistent_kv.list -n "$namespace")
+      COMPREPLY=( $(compgen -W "${result[*]}" -- "$cur_word") )
+    fi
   else
-    COMPREPLY=( $(compgen -W "${OPTS}" -- "$cur_word") )
+    COMPREPLY=( $(compgen -W "${OPTS[*]}" -- "$cur_word") )
   fi
 }
+
 
 _complete_cu.persistent_kv.list() {
   _complete_cu.persistent_kv_base "-n --namespace -h --help" "$@"
