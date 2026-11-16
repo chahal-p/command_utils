@@ -2,7 +2,7 @@
 
 function usage() {
   cat << EOF
-Usage: $(basename "$0") -n  -k  [-v ] [-h]
+Usage: cu.persistent_kv set -n  -k  [-v ] [-h]
 
 Options:
   -n, --namespace   Namespace
