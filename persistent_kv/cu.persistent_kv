@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+function usage() {
+  cat << EOF
+Usage: $(basename "$0") [-h] <SUBCOMMAND>
+
+Subcommands:
+  list
+  get
+  set
+  delete
+  etag
+  chmod
+  chown
+  configure
+
+Options:
+  -h, --help        Show this help message and exit
+EOF
+}
+
+first_arg="$1"
+shift || true
+
+case "$first_arg" in
+  -h|--help)
+    usage
+    exit 0
+    ;;
+  list)
+    exec -a "$(basename "$0") list" cu.persistent_kv.list "$@"
+    ;;
+  get)
+    exec -a "$(basename "$0") get" cu.persistent_kv.get "$@"
+    ;;
+  set)
+    exec -a "$(basename "$0") set" cu.persistent_kv.set "$@"
+    ;;
+  delete)
+    exec -a "$(basename "$0") delete" cu.persistent_kv.delete "$@"
+    ;;
+  etag)
+    exec -a "$(basename "$0") etag" cu.persistent_kv.etag "$@"
+    ;;
+  chmod)
+    exec -a "$(basename "$0") chmod" cu.persistent_kv.chmod "$@"
+    ;;
+  chown)
+    exec -a "$(basename "$0") chown" cu.persistent_kv.chown "$@"
+    ;;
+  configure)
+    exec -a "$(basename "$0") configure" cu.persistent_kv.configure "$@"
+    ;;
+  *)
+    echo "Unrecognized arguments: $arg" >&2
+    exit 2
+    ;;
+esac
