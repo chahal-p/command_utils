@@ -3,7 +3,7 @@
 source cu.errors_lib.bash || exit
 
 # Recommended permissions on storage directory is 1777
-parsed_args=$(pflags parse --name "$(basename "${0}")" ---- \
+parsed_args=$(pflags parse --name "cu.persistent_kv configure" ---- \
   -s e -l editor -t string --default vim -h "Editor to use to edit file" -- \
   -s p -l print_path -t bool -h "Prints the path of config bash file" ---- "$@") || exit
 
