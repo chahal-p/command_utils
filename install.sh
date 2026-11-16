@@ -93,7 +93,7 @@ COMMAND_UTILS_DIR_PATH="${HOME}/.command_utils"
 
 function install_persistent_kv_configs() {
   [ -f "${FLAGS_installation_path%/}/_cu.persistent_kv.configs" ] && {
-    echo "Persistent KV already configured, skipping configs installation. Use cu.persistent_kv.configure to reconfigure."
+    echo "Persistent KV already configured, skipping configs installation. Use \`cu.persistent_kv configure\` to reconfigure."
     return 1
   }
   [ -d "${COMMAND_UTILS_DIR_PATH}" ] || {
