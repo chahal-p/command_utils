@@ -9,9 +9,11 @@ _complete_cu.persistent_kv_base() {
   local cur_word="$(printf '%q' "${COMP_WORDS[COMP_CWORD]}")"
   local prev_word="${COMP_WORDS[COMP_CWORD-1]}"
   if [[ "$prev_word" == "-n" || "$prev_word" == "--namespace" ]]; then
-    for x in "$(cu.persistent_kv.list)"; do
-      result+=( "$x" )
-    done
+    while IFS= read -r line; do
+      line="$(printf '%q' "$line")"
+      line="$(printf '%q' "$line")"
+      result+=( "$line" )
+    done < <(cu.persistent_kv.list)
     COMPREPLY=( $(compgen -W "${result[*]}" -- "$cur_word") )
   elif [[ "$prev_word" == "-k" || "$prev_word" == "--key" ]]; then
     local i
@@ -41,7 +43,6 @@ _complete_cu.persistent_kv_base() {
     COMPREPLY=( $(compgen -W "${OPTS[*]}" -- "$cur_word") )
   fi
 }
-
 
 _complete_cu.persistent_kv.list() {
   _complete_cu.persistent_kv_base "-n --namespace -h --help" "$@"
