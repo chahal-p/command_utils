@@ -2,7 +2,7 @@
 
 function usage() {
   cat <<EOF
-Usage: $(basename "$0") -n  [-k ] [--delete_namespace] [-h]
+Usage: cu.persistent_kv delete -n  [-k ] [--delete_namespace] [-h]
 
 Options:
   -n, --namespace         Namespace
