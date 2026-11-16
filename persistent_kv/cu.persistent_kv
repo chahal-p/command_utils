@@ -28,28 +28,28 @@ case "$first_arg" in
     exit 0
     ;;
   list)
-    exec -a "$(basename "$0") list" cu.persistent_kv.list "$@"
+    exec -a "$(basename "$0") list" _cu.persistent_kv.list "$@"
     ;;
   get)
-    exec -a "$(basename "$0") get" cu.persistent_kv.get "$@"
+    exec -a "$(basename "$0") get" _cu.persistent_kv.get "$@"
     ;;
   set)
-    exec -a "$(basename "$0") set" cu.persistent_kv.set "$@"
+    exec -a "$(basename "$0") set" _cu.persistent_kv.set "$@"
     ;;
   delete)
-    exec -a "$(basename "$0") delete" cu.persistent_kv.delete "$@"
+    exec -a "$(basename "$0") delete" _cu.persistent_kv.delete "$@"
     ;;
   etag)
-    exec -a "$(basename "$0") etag" cu.persistent_kv.etag "$@"
+    exec -a "$(basename "$0") etag" _cu.persistent_kv.etag "$@"
     ;;
   chmod)
-    exec -a "$(basename "$0") chmod" cu.persistent_kv.chmod "$@"
+    exec -a "$(basename "$0") chmod" _cu.persistent_kv.chmod "$@"
     ;;
   chown)
-    exec -a "$(basename "$0") chown" cu.persistent_kv.chown "$@"
+    exec -a "$(basename "$0") chown" _cu.persistent_kv.chown "$@"
     ;;
   configure)
-    exec -a "$(basename "$0") configure" cu.persistent_kv.configure "$@"
+    exec -a "$(basename "$0") configure" _cu.persistent_kv.configure "$@"
     ;;
   *)
     echo "Unrecognized arguments: $arg" >&2
