@@ -13,7 +13,7 @@ _complete_cu.persistent_kv_base() {
       line="$(printf '%q' "$line")"
       line="$(printf '%q' "$line")"
       result+=( "$line" )
-    done < <(cu.persistent_kv.list)
+    done < <(cu.persistent_kv list)
     COMPREPLY=( $(compgen -W "${result[*]}" -- "$cur_word") )
   elif [[ "$prev_word" == "-k" || "$prev_word" == "--key" ]]; then
     local i
@@ -36,7 +36,7 @@ _complete_cu.persistent_kv_base() {
         line="$(printf '%q' "$line")"
         line="$(printf '%q' "$line")"
         result+=( "$line" )
-      done < <(cu.persistent_kv.list -n "$namespace")
+      done < <(cu.persistent_kv list -n "$namespace")
       COMPREPLY=( $(compgen -W "${result[*]}" -- "$cur_word") )
     fi
   else
