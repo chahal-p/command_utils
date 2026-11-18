@@ -5,7 +5,8 @@ source cu.errors_lib.bash || exit
 # Recommended permissions on storage directory is 1777
 parsed_args=$(pflags parse --name "cu.persistent_kv configure" ---- \
   -s e -l editor -t string --default vim -h "Editor to use to edit file" -- \
-  -s p -l print_path -t bool -h "Prints the path of config bash file" ---- "$@") || exit
+  -s p -l print_path -t bool -h "Prints the path of config bash file" -- \
+  -l sudo -t bool -h "Launch editor with sudo" ---- "$@") || exit
 
 eval set -- "${parsed_args[@]}"
 
@@ -30,6 +31,10 @@ config_path="$(which _cu.persistent_kv.configs)"
 if [[ "$FLAGS_print_path" == "true" ]]; then
   echo "$config_path"
 else
-  [ -w "$config_path" ] || cu.errors.die "$CU_ERROR_PERMISSION_DENIED" "$(whoami) do not have write permission on file: $config_path"
-  "$FLAGS_editor" "$config_path"
+  if [ "$FLAGS_sudo" == "true" ]; then
+    sudo "$FLAGS_editor" "$config_path"
+  else
+    [ -w "$config_path" ] || cu.errors.die "$CU_ERROR_PERMISSION_DENIED" "$(whoami) do not have write permission on file: $config_path"
+    "$FLAGS_editor" "$config_path"
+  fi
 fi
