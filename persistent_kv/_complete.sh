@@ -69,7 +69,7 @@ _complete_cu.persistent_kv.chown() {
 }
 
 _complete_cu.persistent_kv.configure() {
-  local OPTS="-e --editor -p --print_path -h --help"
+  local OPTS="-e --editor -p --print_path --sudo -h --help"
   local cur_word="${COMP_WORDS[COMP_CWORD]}"
   local prev_word="${COMP_WORDS[COMP_CWORD-1]}"
   if [[ "$prev_word" == "-e" || "$prev_word" == "--editor" ]]; then
