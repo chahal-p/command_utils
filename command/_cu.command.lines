@@ -31,10 +31,9 @@ def execute(command: list[str], line:str):
       sys.stdout.write(result.stdout if result.stdout.endswith('\n') else result.stdout + '\n')
     sys.stdout.flush()
   except KeyboardInterrupt:
-    if result is None:
-      raise
-    os.killpg(os.getpgid(result.pid), signal.SIGKILL)
-    exit_code = KEYBOARD_INTERRUPT_EXIT_CODE
+    if result is not None:
+      os.killpg(os.getpgid(result.pid), signal.SIGKILL)
+    raise
   except Exception as e:
     sys.stderr.write(f"Error: {e}\n")
     exit_code = 1
@@ -45,14 +44,14 @@ def main():
     sys.stderr.write(USAGE.replace('{PROG_NAME}', PROG_NAME))
     sys.exit(2)
   exit_code = None
-  try:
-    for line in sys.stdin.readlines():
-      ret = execute(sys.argv[1:], line.rstrip('\n'))
-      if exit_code is None or exit_code != 0:
-        exit_code = ret
-    sys.exit(exit_code)
-  except KeyboardInterrupt:
-    sys.exit(KEYBOARD_INTERRUPT_EXIT_CODE)
+  for line in sys.stdin.readlines():
+    ret = execute(sys.argv[1:], line.rstrip('\n'))
+    if exit_code is None or exit_code != 0:
+      exit_code = ret
+  sys.exit(exit_code)
 
 if __name__ == "__main__":
-  main()
+  try:
+    main()
+  except KeyboardInterrupt:
+    sys.exit(KEYBOARD_INTERRUPT_EXIT_CODE)
