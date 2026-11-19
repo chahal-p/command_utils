@@ -82,7 +82,9 @@ _complete_cu.persistent_kv.configure() {
 _complete_cu.persistent_kv() {
   local cur_word="${COMP_WORDS[COMP_CWORD]}"
   if [ $COMP_CWORD -gt 1 ]; then
-    _complete_cu.persistent_kv.${COMP_WORDS[1]}
+    if [[ "${COMP_WORDS[1]}" =~ ^list|get|set|delete|chmod|chown|configure$ ]]; then
+      _complete_cu.persistent_kv.${COMP_WORDS[1]}
+    fi
   else
     COMPREPLY=( $(compgen -W "list get set delete etag chmod chown configure -h" -- "$cur_word") )
   fi
