@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source _cu.persistent_source.configs || exit 1
+NAMESPACE_PREFIX="__cd97e6__ps"
 
 function root_usage() {
   cat << EOF
