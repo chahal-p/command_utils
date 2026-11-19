@@ -45,7 +45,7 @@ def main():
     sys.exit(2)
   exit_code = None
   for line in sys.stdin.readlines():
-    ret = execute(sys.argv[1:], line.rstrip('\n'))
+    ret = execute(sys.argv[1:], line.removesuffix('\n'))
     if exit_code is None or exit_code != 0:
       exit_code = ret
   sys.exit(exit_code)
