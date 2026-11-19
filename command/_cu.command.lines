@@ -1,26 +1,45 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
+import os
+import sys
+import subprocess
 
-source cu.errors_lib.bash || exit
+PROG_NAME = os.path.basename(__file__)
 
-function usage() {
-  echo "Usage: $(basename "$0") <command> [args...]"
-  echo "  <command>: The command to run on each line of the input from stdin"
-  echo "  Captured line is accessible with {}"
-  
-  echo ""
-  echo "Example:"
-  echo "  cat file.txt | $(basename "$0") echo '{}'"
-  echo ""
-  echo "  Above command will print each line of file.txt"
-}
+USAGE='''
+Usage: {PROG_NAME} <command> [args...]
+  <command>: The command to run on each line of the input from stdin
+  Captured line is accessible with {}
 
-[[ "$1" == "-h" || "$1" == "--help" ]] && { usage; exit 0; }
-[[ $# -eq 0 ]] && { usage >&2; cu.errors.die_usage; }
+Example:  
+  cat file.txt | {PROG_NAME} echo '{}'
+  Above command will print each line of file.txt
+'''
 
-while IFS= read -r line || [[ -n "$line" ]]; do
-  args=()
-  for arg in "$@"; do
-    args+=( "${arg//\{\}/$line}" )
-  done
-  "${args[@]}" | awk '{print}'
-done
+def execute(command: list[str], line:str):
+  exit_code = 1
+  for i in range(0, len(command)):
+    command[i] = command[i].replace('{}', line)
+  try:
+    result = subprocess.run(command, preexec_fn=os.setsid, text=True, stdout=sys.stdout, stderr=sys.stderr)
+    exit_code = result.returncode
+  except KeyboardInterrupt:
+    os.killpg(os.getpgid(result.pid), signal.SIGKILL)
+    exit_code = 130
+  except Exception as e:
+    sys.stderr.write(f"Error: {e}\n")
+    exit_code = 1
+  return exit_code
+
+def main():
+  if len(sys.argv) < 2:
+    sys.stderr.write(USAGE.replace('{PROG_NAME}', PROG_NAME))
+    sys.exit(2)
+  exit_code = None
+  for line in sys.stdin.readlines():
+    ret = execute(sys.argv[1:], line.rstrip('\n'))
+    if exit_code is None or exit_code != 0:
+      exit_code = ret
+  sys.exit(exit_code)
+
+if __name__ == "__main__":
+  main()
