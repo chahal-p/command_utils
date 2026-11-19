@@ -86,7 +86,7 @@ _complete_cu.persistent_kv() {
       _complete_cu.persistent_kv.${COMP_WORDS[1]}
     fi
   else
-    COMPREPLY=( $(compgen -W "list get set delete etag chmod chown configure -h" -- "$cur_word") )
+    COMPREPLY=( $(compgen -W "list get set delete etag chmod chown configure -h --help" -- "$cur_word") )
   fi
 }
 
