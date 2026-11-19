@@ -20,8 +20,11 @@ def execute(command: list[str], line:str):
   for i in range(0, len(command)):
     command[i] = command[i].replace('{}', line)
   try:
-    result = subprocess.run(command, preexec_fn=os.setsid, text=True, stdout=sys.stdout, stderr=sys.stderr)
+    result = subprocess.run(command, preexec_fn=os.setsid, text=True, capture_output=True)
     exit_code = result.returncode
+    if result.stdout is not None:
+      sys.stdout.write(result.stdout if result.stdout.endswith('\n') else result.stdout + '\n')
+    sys.stderr.write(result.stderr)
   except KeyboardInterrupt:
     os.killpg(os.getpgid(result.pid), signal.SIGKILL)
     exit_code = 130
