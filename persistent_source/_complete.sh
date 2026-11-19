@@ -6,11 +6,6 @@ _complete_cu.persistent_source_base() {
   COMPREPLY=( $(compgen -W "${OPTS[*]}" -- "$cur_word") )
 }
 
-
-_complete_cu.persistent_source.list() {
-  COMPREPLY= "-n --namespace -h --help" "$@"
-}
-
 _complete_cu.persistent_source.list() {
   _complete_cu.persistent_source_base "--sh -h --help"
 }
@@ -34,7 +29,7 @@ _complete_cu.persistent_source.delete() {
 _complete_cu.persistent_source() {
   local cur_word="${COMP_WORDS[COMP_CWORD]}"
   if [ $COMP_CWORD -gt 1 ]; then
-    _complete_cu.persistent_source.${COMP_WORDS[1]}
+    [[ "${COMP_WORDS[1]}" =~ ^list|get|add|print_sourceable|delete$ ]] && _complete_cu.persistent_source.${COMP_WORDS[1]}
   else
     COMPREPLY=( $(compgen -W "list get add print_sourceable delete -h --help" -- "$cur_word") )
   fi
