@@ -12,5 +12,3 @@ shift
 for arg in "$@"; do
   printf " %s" "$(double_quoted "$arg")"
 done
-
-
