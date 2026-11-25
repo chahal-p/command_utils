@@ -26,7 +26,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-config_path="$(which _cu.persistent_kv.configs)"
+config_path="$(command -v _cu.persistent_kv.configs)" || cu.errors.die_not_found "_cu.persistent_kv.configs is not installed or not exported in PATH env"
 
 if [[ "$FLAGS_print_path" == "true" ]]; then
   echo "$config_path"
